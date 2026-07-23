@@ -1,0 +1,24 @@
+# CSE476 Agentic AI and Intelligent Automation
+#
+# Create the environment:
+#     conda env create -f environment.yml
+#     conda activate cse476
+#     pip install -e .
+#
+# Update it later when requirements.txt changes:
+#     conda env update -f environment.yml --prune
+
+name: cse476
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - pip>=24
+
+  # WHY: everything else installs through pip rather than conda. The agent
+  # SDKs move fast and conda-forge lags behind PyPI by weeks, so pinning them
+  # here would give you stale versions of the exact packages that matter most.
+  - pip:
+      - -r requirements.txt

@@ -1,0 +1,30 @@
+# CSE476 Agentic AI and Intelligent Automation
+# Pinned to minimum versions verified working on 23 July 2026.
+# Install:  pip install -r requirements.txt
+
+# --- core, needed from Unit 1 ---
+openai>=2.0.0
+python-dotenv>=1.0.1
+pydantic>=2.9
+httpx>=0.27
+rich>=13.7
+
+# --- Unit 1 and 2, notebooks ---
+jupyter>=1.1
+ipykernel>=6.29
+
+# --- Unit 3, uncomment when we reach it ---
+# semantic-kernel>=1.0
+# azure-ai-inference>=1.0
+# azure-identity>=1.19
+
+# --- Unit 4, uncomment when we reach it ---
+# ag2>=0.9
+
+# --- Unit 5, uncomment when we reach it ---
+# fastapi>=0.115
+# uvicorn>=0.32
+# opentelemetry-sdk>=1.29
+# prometheus-client>=0.21
+# pytest>=8.3
+# ruff>=0.8

@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+          pip install pytest ruff
+
+      - name: Lint
+        run: ruff check src tests setup_check.py
+
+      # WHY: no API key is available in CI, and that is the point. The lane
+      # abstraction has to be testable without one, or nobody can contribute.
+      - name: Test
+        run: pytest -q
+
+      - name: Refuse to merge a committed secret
+        run: |
+          if git ls-files | grep -qx '.env'; then
+            echo "::error::.env is tracked by git. Remove it and rotate every key in it."
+            exit 1
+          fi

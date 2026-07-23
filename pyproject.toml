@@ -1,0 +1,15 @@
+[project]
+name = "cse476"
+version = "0.1.0"
+description = "CSE476 Agentic AI and Intelligent Automation, LPU"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
