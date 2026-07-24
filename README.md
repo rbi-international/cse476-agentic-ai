@@ -129,6 +129,21 @@ requirements.txt     package versions
 setup_check.py       run this first, and again whenever something breaks
 ```
 
+### Check your own work
+
+Before you submit any practical from Unit 1 Lecture 5 onwards:
+
+```python
+from cse476.design import audit_tools, audit_guards, report
+
+print(report(audit_tools(MY_SCHEMA, MY_REGISTRY), "my agent"))
+print(report(audit_guards(max_steps=6, has_whitelist=True), "guards"))
+```
+
+It runs offline and calls no model. **Fix every error**, since those are runtime
+crashes waiting to happen. **Fix or justify every warning** in a comment. An
+unexplained warning and a fixed one score the same. An ignored one does not.
+
 ### The library
 
 | Module | What it is for | Introduced in |
@@ -138,6 +153,7 @@ setup_check.py       run this first, and again whenever something breaks
 | `architectures.py` | Reflex, model based, goal based and utility based, on one shared loop. | Unit 1 Lecture 2 |
 | `conversation.py` | Token counting, cost simulation, and three ways to trim a transcript. | Unit 1 Lecture 3 |
 | `planning.py` | ReAct, plan then execute, reflection, and the no progress detector. | Unit 1 Lecture 4 |
+| `design.py` | A linter for your own agent. Audits tools, guards and design decisions. | Unit 1 Lecture 5 |
 
 Everything is deliberately plain. If you can read `tiny_agent.py`, you can read
 any agent framework, because they are all doing that underneath.
@@ -150,6 +166,7 @@ any agent framework, because they are all doing that underneath.
 | `notebooks/u1/l2_architectures.ipynb` | U1 L2 | The same task through four architectures, and read the difference |
 | `notebooks/u1/l3_conversation.ipynb` | U1 L3 | Measure a conversation, trim it, discover what the trim broke |
 | `notebooks/u1/l4_planning.ipynb` | U1 L4 | Act first versus reason first, then build the third exit condition |
+| `notebooks/u1/l5_design_review.ipynb` | U1 L5 | Audit an agent statically, and write the spec before the code |
 
 Some cells are **meant to fail**. They are labelled. Running them is the lesson.
 
@@ -181,6 +198,7 @@ python tests/mock_run.py       # Unit 1 Lecture 1
 python tests/mock_run_l2.py    # Unit 1 Lecture 2
 python tests/mock_run_l3.py    # Unit 1 Lecture 3
 python tests/mock_run_l4.py    # Unit 1 Lecture 4
+python tests/mock_run_l5.py    # Unit 1 Lecture 5
 ```
 
 These stand in a fake client that replays scripted model responses, so they
@@ -201,6 +219,11 @@ arguments in executable form. Two are worth singling out:
   an agent is working correctly. A guardrail that fires on healthy behaviour is
   worse than no guardrail, because it stops working systems and teaches you to
   ignore it. Testing that something does not fire is half the job.
+- `mock_run_l5.py` scenario 7: the same principle again, in a different place.
+  The design linter must report nothing at all against the teaching code. It
+  once reported "Returns str rather than str" on correctly annotated functions,
+  because `from __future__ import annotations` makes annotations strings. There
+  is now a case for that exact false positive.
 
 ---
 

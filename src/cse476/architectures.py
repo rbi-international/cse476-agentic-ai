@@ -35,6 +35,7 @@ ROOMS = {
 
 
 def get_room_availability(hotel: str, date: str) -> str:
+    """Rooms free at one hotel on one date. Says nothing about price."""
     n = ROOMS.get((hotel, date))
     if n is None:
         return f"No record for {hotel} on {date}."
@@ -42,6 +43,7 @@ def get_room_availability(hotel: str, date: str) -> str:
 
 
 def get_hotel_details(hotel: str) -> str:
+    """Rate, distance and rating for one hotel. Says nothing about availability."""
     d = HOTELS.get(hotel)
     if d is None:
         return f"No details on file for {hotel}."
@@ -52,6 +54,7 @@ def get_hotel_details(hotel: str) -> str:
 
 
 def list_hotels() -> str:
+    """Every hotel on file. The starting point when no hotel has been named."""
     return "Hotels on file: " + ", ".join(HOTELS)
 
 
