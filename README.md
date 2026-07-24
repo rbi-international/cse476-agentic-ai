@@ -137,6 +137,7 @@ setup_check.py       run this first, and again whenever something breaks
 | `tiny_agent.py` | The smallest honest agent. Tools, loop, whitelist, budget guard. | Unit 1 Lecture 1 |
 | `architectures.py` | Reflex, model based, goal based and utility based, on one shared loop. | Unit 1 Lecture 2 |
 | `conversation.py` | Token counting, cost simulation, and three ways to trim a transcript. | Unit 1 Lecture 3 |
+| `planning.py` | ReAct, plan then execute, reflection, and the no progress detector. | Unit 1 Lecture 4 |
 
 Everything is deliberately plain. If you can read `tiny_agent.py`, you can read
 any agent framework, because they are all doing that underneath.
@@ -148,6 +149,7 @@ any agent framework, because they are all doing that underneath.
 | `notebooks/u1/l1_first_agent.ipynb` | U1 L1 | A working agent in about forty lines, then break it twice |
 | `notebooks/u1/l2_architectures.ipynb` | U1 L2 | The same task through four architectures, and read the difference |
 | `notebooks/u1/l3_conversation.ipynb` | U1 L3 | Measure a conversation, trim it, discover what the trim broke |
+| `notebooks/u1/l4_planning.ipynb` | U1 L4 | Act first versus reason first, then build the third exit condition |
 
 Some cells are **meant to fail**. They are labelled. Running them is the lesson.
 
@@ -178,6 +180,7 @@ secrets, so the abstraction has to be testable without them.
 python tests/mock_run.py       # Unit 1 Lecture 1
 python tests/mock_run_l2.py    # Unit 1 Lecture 2
 python tests/mock_run_l3.py    # Unit 1 Lecture 3
+python tests/mock_run_l4.py    # Unit 1 Lecture 4
 ```
 
 These stand in a fake client that replays scripted model responses, so they
@@ -189,9 +192,15 @@ They are named `mock_run*` rather than `test_*` on purpose, so pytest does not
 collect them. They are teaching artefacts, not unit tests.
 
 Worth running at least once each, because the assertions are the lecture's
-arguments in executable form. `mock_run_l3.py` scenarios 6 and 7 are the
-clearest example: the same thirty turn conversation, one budget, and a stated
-allergy that survives with pinning and is silently lost without it.
+arguments in executable form. Two are worth singling out:
+
+- `mock_run_l3.py` scenarios 6 and 7: the same thirty turn conversation, one
+  budget, and a stated allergy that survives with pinning and is silently lost
+  without it.
+- `mock_run_l4.py` scenario 4: the no progress detector staying **quiet** while
+  an agent is working correctly. A guardrail that fires on healthy behaviour is
+  worse than no guardrail, because it stops working systems and teaches you to
+  ignore it. Testing that something does not fire is half the job.
 
 ---
 
@@ -241,7 +250,7 @@ it was never run, and it will be marked as such.
 
 ## Currency notes
 
-Verified 23 July 2026. Three things changed recently that will confuse you when
+Verified 24 July 2026. Three things changed recently that will confuse you when
 you search for help:
 
 - **Azure AI Foundry is now Microsoft Foundry.** Renamed at Ignite in November
