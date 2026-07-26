@@ -253,7 +253,8 @@ why each piece exists will make the whole thing easier to navigate.
 ```
 src/cse476/          the shared library every notebook imports
 notebooks/u1/         the code I build live in each Unit 1 lecture
-notebooks/u2/         and Unit 2, one notebook per lecture, and so on
+notebooks/u2/         and Unit 2, one notebook per lecture
+notebooks/u3/         and Unit 3, built on the real frameworks
 practicals/           the ten assessed practicals, one folder each
 docs/                 setup, lanes, troubleshooting, syllabus map
 slides/               the decks, with PDF handouts in slides/pdf

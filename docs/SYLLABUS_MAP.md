@@ -45,17 +45,35 @@ you only know by its syllabus name.
 | Syllabus phrase | Where | Practical |
 |---|---|---|
 | Python programming for AI agents | U3 L1 | P4 |
-| Semantic Kernel fundamentals | U3 L1, L2 | P4, P5 |
-| AutoGen framework | U3 L1, L5 | P6 |
+| Semantic Kernel fundamentals | U3 L2 (real `kernel.py`) | P4, P5 |
+| AutoGen framework | U3 L1, L5 (graph successor) | P6, P7 |
 | Bot Framework integration | U3 L1 | |
 | Asynchronous workflows | U3 L3 | P4 |
-| Memory management | U3 L4 | P5 |
+| Memory management | U3 L4 (real sessions) | P5 |
 | State handling | U3 L4 | P5 |
-| Prompt templates | U3 L2 | P4 |
-| Retrieval augmented generation | U3 L4 | P8 |
-| Integration of external tools | U3 L2, L3 | P4 |
-| Building modular AI systems | U3 L3 | |
+| Prompt templates | U3 L2, L4 (RAG prompt) | P4 |
+| Retrieval augmented generation | U3 L4 (real `rag.py`) | P8 |
+| Integration of external tools | U3 L2, L3 (plain-function tools) | P4 |
+| Building modular AI systems | U3 L3, L5 (agent-as-tool, graph) | P7 |
 | Framework based enterprise development | U3 L3 | |
+
+**What each Unit 3 lecture actually builds.** Every lecture uses the real
+packages, not mock stand-ins: `agent-framework-core`, `agent-framework-openai`,
+and `semantic-kernel`.
+
+- **L1, Framework Landscape.** The merger, the lineage, the competitor map, and
+  the `pip show` import trap. Module `frameworks.py`.
+- **L2, Semantic Kernel Foundations.** Real `Kernel`, real `@kernel_function`
+  plugins, invoked with no model to show the plugin layer is testable offline.
+  Module `kernel.py`.
+- **L3, Building on Agent Framework.** A shippable agent in three lines, tools as
+  plain functions, async as mechanism. Module `agent_fw.py`.
+- **L4, Memory and Retrieval.** Real sessions for memory, and RAG built from
+  scratch: chunk, embed, cosine search, all offline behind an embedder seam.
+  Module `rag.py`.
+- **L5, Multi-Agent, the Graph Model.** The agent-as-tool manager, then a real
+  `WorkflowBuilder` graph that runs offline and routes deterministically. The
+  conversation-to-graph shift that defines the merger. Module `multi_agent.py`.
 
 **Important note on the frameworks named in this unit.** The syllabus names
 Semantic Kernel, AutoGen, and Bot Framework. All three changed status in 2026,
