@@ -58,3 +58,35 @@ def test_model_override_wins(monkeypatch):
 
 def test_describe_is_one_line():
     assert "\n" not in describe()
+
+
+def test_foundry_needs_endpoint_and_key(monkeypatch):
+    monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
+    monkeypatch.delenv("AZURE_OPENAI_API_KEY", raising=False)
+    with pytest.raises(LaneError) as e:
+        get_client("foundry")
+    msg = str(e.value)
+    assert "/openai/v1/" in msg
+    assert "PROVIDER=github" in msg
+
+
+def test_foundry_normalises_a_messy_endpoint(monkeypatch):
+    # WHY: users paste the /responses operation URL straight from the portal.
+    # The lane must turn any plausible paste into a valid /openai/v1/ base.
+    monkeypatch.setenv(
+        "AZURE_OPENAI_ENDPOINT",
+        "https://cse476-foundry.openai.azure.com/openai/v1/responses",
+    )
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "fake-key-for-testing")
+    client = get_client("foundry")
+    assert str(client.base_url).endswith("/openai/v1/")
+    assert "responses" not in str(client.base_url)
+
+
+def test_foundry_bare_host_gets_the_v1_path(monkeypatch):
+    monkeypatch.setenv(
+        "AZURE_OPENAI_ENDPOINT", "https://cse476-foundry.openai.azure.com"
+    )
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "fake-key-for-testing")
+    client = get_client("foundry")
+    assert str(client.base_url) == "https://cse476-foundry.openai.azure.com/openai/v1/"

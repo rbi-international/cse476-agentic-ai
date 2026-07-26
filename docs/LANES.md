@@ -1,73 +1,96 @@
 # The four lanes
 
-You only need one. The course default is Lane B.
+You only need one. I have set the course up so the default, Lane B, is free and
+takes about two minutes. Read that section, ignore the rest until you need it.
+
+The whole idea: your code never names a provider. You pick a lane in `.env`,
+and every notebook runs the same way regardless. I built it like this on
+purpose, so that nobody in the class is ever blocked from a practical for lack
+of money, and so the code you write works unchanged whether you are on my paid
+demo account or your own free key.
 
 ---
 
 ## Lane B, GitHub Models  (start here)
 
-Free API access to a catalogue of frontier and open models through an
-Azure hosted, OpenAI compatible endpoint. Every student in this course
-already needs a GitHub account for this repository, so you already have
-most of the setup done.
+This is the one I want you on. It gives you free API access to a catalogue of
+frontier and open models through an Azure-hosted, OpenAI-compatible endpoint,
+and you already need a GitHub account for the course repository, so you are
+most of the way there already.
 
 **Endpoint:** `https://models.github.ai/inference`
 
 **Get a credential**
-1. github.com/settings/tokens
+1. Go to github.com/settings/tokens
 2. Generate new token, classic
-3. Tick **no scopes at all**
-4. Copy it into `GITHUB_TOKEN` in your `.env`
+3. Tick **no scopes at all**. You do not need any.
+4. Paste it into `GITHUB_TOKEN` in your `.env`
 
-**Model names are namespaced.** Use `openai/gpt-4.1-mini`, not `gpt-4.1-mini`.
-Browse the catalogue at github.com/marketplace/models.
+**Model names are namespaced here.** Use `openai/gpt-4.1-mini`, not
+`gpt-4.1-mini`. The catalogue is at github.com/marketplace/models.
 
-**Limits, honestly.** Roughly 8K tokens in and 4K tokens out per request, with
-a modest requests per minute cap that depends on your GitHub plan. This is
-comfortable for learning and genuinely inadequate for production. We will
-measure exactly where it stops being enough in Unit 5 rather than guess.
+**The limit, told honestly.** Requests are capped at roughly 8K tokens in and
+4K out, with a modest rate limit that depends on your GitHub plan. That is
+comfortable for everything we do in class and genuinely too small for
+production. Knowing exactly where a free tier stops being enough is a real
+skill, so in Unit 5 we measure it rather than guess.
 
 ---
 
 ## Lane A, Microsoft Foundry
 
-The real enterprise platform. Demonstrated in class on the instructor account.
-You do not need this to pass any practical.
+This is the real enterprise platform, and it is the one I demonstrate on in
+class, on my account. You do not need it to pass a single practical. If you
+want to run the Foundry parts yourself, here is how.
 
-Formerly called Azure AI Foundry. Renamed at Ignite November 2025 and
-formalised in the January 2026 product terms.
+Foundry was called Azure AI Foundry until Ignite in November 2025, and Azure AI
+Studio before that. Same platform, renamed twice. When you search for help you
+will hit all three names.
+
+The current Foundry surface is OpenAI-compatible, which means this lane uses the
+plain `OpenAI` client, exactly like the GitHub and Groq lanes. There is no
+special Azure client and no API version to track. That is a deliberate
+simplification on Microsoft's side and it makes the whole thing easier to teach.
 
 ```
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/openai/v1/
 AZURE_OPENAI_API_KEY=...
-AZURE_OPENAI_API_VERSION=2024-10-21
 MODEL=your-deployment-name
 ```
 
-**The one thing that catches everybody:** Azure routes by **deployment name**,
-not model name. If you deployed `gpt-4o-mini` and named the deployment
-`chat-dev`, then `MODEL=chat-dev`. Getting this wrong produces a 404 that
-looks like the model does not exist.
+**Two things catch everybody, so I am flagging them up front.**
+
+- The endpoint has to be the **v1 base**, ending in `/openai/v1/`. Get it from
+  the portal: open your deployment, click the key icon, copy the Endpoint. I
+  wrote the lane to tidy up a trailing slash or a pasted `/responses` path for
+  you, so a slightly messy copy still works, but the host itself must be right.
+- Foundry routes by **deployment name**, not model name. When I set up the
+  course account I deployed `gpt-5-mini` and named the deployment `chat-demo`,
+  so `MODEL=chat-demo`. Get this wrong and you get a 404 that reads as though
+  the model does not exist, which sends people debugging in the wrong place for
+  an hour. It is almost always this.
 
 ---
 
 ## Lane C, Groq
 
-Fast inference on open models. Free tier, no card.
+Fast inference on open models, free tier, no card. A good option if you want
+speed and Lane B is being slow.
 
-Get a key at console.groq.com. Set `GROQ_API_KEY`.
+Get a key at console.groq.com and set `GROQ_API_KEY`.
 
-**Note:** Groq reduced its free tier limits during 2026. Most models now sit
-around 1,000 requests per day rather than the much higher figure you will see
-quoted in older tutorials. Fine for one person, tight for a full lab running
-simultaneously.
+**One warning.** Groq cut its free tier limits during 2026, down to roughly
+1,000 requests per day on most models. Older tutorials quote a far higher
+figure, so do not be surprised when you hit the wall sooner than they suggest.
+Fine for one person working alone, tight for a full lab hitting it at once.
 
 ---
 
 ## Lane D, Ollama, on your own machine
 
-Nothing to sign up for and nothing to run out of. Slower and weaker than every
-other lane, and it will never fail you the night before a submission.
+Nothing to sign up for and nothing to run out of. It is slower and weaker than
+every other lane, and it will never fail you the night before a submission,
+which is exactly why I keep it in the course.
 
 ```bash
 # install from ollama.com, then
@@ -78,27 +101,29 @@ ollama serve            # usually already running after install
 Set `PROVIDER=local`. No key needed.
 
 **What to expect.** A 3B model will follow simple tool schemas and will
-struggle with the multi step reasoning in Unit 4. That is a real and useful
-lesson about model capability, not a bug in your code.
+struggle with the multi-step reasoning in Unit 4. That is not a bug in your
+code, it is a real and useful lesson about what model size buys you, and we
+lean into it rather than hiding it.
 
 ---
 
-## Azure for Students
+## Azure for Students, if you want your own Foundry credit
 
 Optional, and worth doing early rather than late.
 
-100 USD of Azure credit, valid twelve months, renewable each year you remain
-enrolled. No credit card. You verify with your institutional email address.
-You must be eighteen or over and a full time student at an accredited,
-degree granting institution.
+It gives you 100 USD of Azure credit, valid twelve months, renewable each year
+you stay enrolled. No credit card. You verify with your university email. You
+have to be eighteen or over and a full-time student at an accredited,
+degree-granting institution.
 
-Two things to know before you activate:
+Two things I want you to know before you activate it, because both have caught
+students out:
 
-- When the credit is exhausted the subscription is **disabled rather than
-  billed to you**. Protective, but it also means one forgotten resource can
-  quietly consume your whole year.
-- The credit does **not** top up early. You get the next 100 USD when the
-  twelve months are up, not when you run out.
+- When the credit runs out the subscription is **disabled, not billed to you**.
+  That is protective. It also means one resource you forgot to delete can
+  quietly eat your whole year.
+- The credit does **not** top up early. You get the next 100 USD when the twelve
+  months are up, not when you run dry.
 
-The twelve month clock starts on activation, and your project work is in the
-back half of the semester, so activate in week one.
+The twelve-month clock starts the day you activate, and your project work lands
+in the back half of the semester, so activate in week one, not week ten.

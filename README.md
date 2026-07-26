@@ -95,7 +95,8 @@ in any notebook.
 | `local` | Ollama on your laptop | free forever | when everything else fails |
 
 Full detail, including where to get each credential and what the real limits
-are, is in [`docs/LANES.md`](docs/LANES.md).
+are, is in [`docs/LANES.md`](docs/LANES.md). Instructor notes for standing up
+Lane A are in [`docs/FOUNDRY_SETUP.md`](docs/FOUNDRY_SETUP.md).
 
 ### How it works in your code
 
@@ -118,7 +119,7 @@ That is the entire abstraction. Your notebook never names a provider.
 ## What is in here
 
 ```
-docs/                setup, lanes, troubleshooting, syllabus map
+docs/                setup, lanes, troubleshooting, syllabus map, Foundry setup
 notebooks/u1/        the live builds from each lecture
 practicals/          the ten assessed practicals, one folder each
 slides/              decks, with PDF handouts in slides/pdf
@@ -284,6 +285,11 @@ you search for help:
 - **Semantic Kernel and AutoGen have converged** into Microsoft Agent Framework
   1.0, shipped 3 April 2026. We still learn both, because both still run and
   both are what the certification tests, and Unit 4 covers the migration.
+- **The Assistants API retires on 26 August 2026**, which is inside this
+  semester. Do not build on it. Use Foundry Agent Service and the Responses API.
+- **There are two Foundry portals.** Classic is hub based and in maintenance
+  mode. New is project first. Create a Foundry **project**, not a hub project.
+  If a tutorial says "create a new hub", it was written for the old portal.
 
 One more that costs money rather than confusion: **Groq reduced its free tier
 during 2026**, to roughly 1,000 requests per day on most models. Older tutorials

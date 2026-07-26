@@ -24,7 +24,7 @@ import os
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
-from openai import AzureOpenAI, OpenAI
+from openai import OpenAI
 
 load_dotenv()
 
@@ -50,9 +50,13 @@ LANES: dict[str, Lane] = {
     "foundry": Lane(
         key="foundry",
         name="Microsoft Foundry",
+        # The v1 surface is OpenAI-compatible, so this lane uses the plain
+        # OpenAI client with a base_url, exactly like github and groq. No
+        # AzureOpenAI class, no api_version. Set AZURE_OPENAI_ENDPOINT to the
+        # resource's v1 base, ending in /openai/v1/.
         base_url=None,  # resolved from AZURE_OPENAI_ENDPOINT
         key_env="AZURE_OPENAI_API_KEY",
-        default_model="gpt-4o-mini",  # this is your DEPLOYMENT name, not the model name
+        default_model="chat-demo",  # your DEPLOYMENT name, not the model name
         free=False,
         note="Formerly called Azure AI Foundry. Renamed January 2026.",
     ),
@@ -105,7 +109,7 @@ def get_model(provider: str | None = None) -> str:
     return override or _lane(provider).default_model
 
 
-def get_client(provider: str | None = None) -> OpenAI | AzureOpenAI:
+def get_client(provider: str | None = None) -> OpenAI:
     """
     Return a configured client for the active lane.
 
@@ -121,17 +125,26 @@ def get_client(provider: str | None = None) -> OpenAI | AzureOpenAI:
             raise LaneError(
                 "Lane A (Microsoft Foundry) is selected but not configured.\n"
                 "Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY in .env.\n"
+                "The endpoint must end in /openai/v1/, for example\n"
+                "  https://your-resource.openai.azure.com/openai/v1/\n"
                 "No Azure access? Set PROVIDER=github instead. It is free "
                 "and every practical runs on it."
             )
-        # WHY: Azure routes by deployment name, not model name, so MODEL in your
-        # .env must match the deployment you created in the Foundry portal.
-        return AzureOpenAI(
-            azure_endpoint=endpoint,
-            api_key=api_key,
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
-            timeout=60.0,
-            max_retries=3,
+        # WHY the plain OpenAI client and not AzureOpenAI: the Foundry v1 surface
+        # is OpenAI-compatible, so the same client that talks to github and groq
+        # talks to Foundry. The only Foundry-specific rule is that MODEL must be
+        # your DEPLOYMENT name (chat-demo), not the underlying model name.
+        # We normalise the endpoint so a trailing slash or a stray operation
+        # path pasted from the portal does not break the base_url.
+        base = endpoint
+        for suffix in ("/responses", "/chat/completions", "/completions"):
+            if base.rstrip("/").endswith(suffix):
+                base = base.rstrip("/")[: -len(suffix)]
+        if not base.rstrip("/").endswith("/openai/v1"):
+            base = base.rstrip("/") + "/openai/v1"
+        base = base.rstrip("/") + "/"
+        return OpenAI(
+            base_url=base, api_key=api_key, timeout=60.0, max_retries=3
         )
 
     if lane.key == "local":
