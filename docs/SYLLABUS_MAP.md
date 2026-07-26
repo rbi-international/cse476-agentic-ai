@@ -26,42 +26,60 @@ you only know by its syllabus name.
 
 | Syllabus phrase | Where | Practical |
 |---|---|---|
-| Agent workflows and orchestration | U2 | P3 |
-| Task automation | U2 | P3 |
-| Tool calling mechanisms | U2 | P3, P4 |
-| API integration | U2 | P3 |
-| Workflow chaining | U2 | P3 |
-| Event driven AI systems | U2 | |
-| Conversational workflows | U2 | |
-| Service integration | U2 | P3 |
-| Autonomous execution pipelines | U2 | P3 |
-| Context aware agents | U2 | P5 |
-| Workflow testing | U2 | |
-| Deployment basics | U2 | |
-| AI powered automation in enterprise | U2 | P3 |
+| Agent workflows and orchestration | U2 L1, L4 | P3 |
+| Task automation | U2 L1, L4 | P3 |
+| Tool calling mechanisms | U2 L2 | P3, P4 |
+| API integration | U2 L3 | P3 |
+| Workflow chaining | U2 L4 | P3 |
+| Event driven AI systems | U2 L4 | |
+| Conversational workflows | U2 L5 | |
+| Service integration | U2 L3 | P3 |
+| Autonomous execution pipelines | U2 L4 | P3 |
+| Context aware agents | U2 L5 | P5 |
+| Workflow testing | U2 L5 | |
+| Deployment basics | U2 L3, and Unit 5 | |
+| AI powered automation in enterprise | U2 L1, L4 | P3 |
 
 ## Unit 3, Agent Development with Python and Frameworks
 
 | Syllabus phrase | Where | Practical |
 |---|---|---|
-| Python programming for AI agents | U3 | P4 |
-| Semantic Kernel fundamentals | U3 | P4, P5 |
-| AutoGen framework | U3 | P6 |
-| Bot Framework integration | U3 | |
-| Asynchronous workflows | U3 | P4 |
-| Memory management | U3 | P5 |
-| State handling | U3 | P5 |
-| Prompt templates | U3 | P4 |
-| Retrieval augmented generation | U3 | P8 |
-| Integration of external tools | U3 | P4 |
-| Building modular AI systems | U3 | |
-| Framework based enterprise development | U3 | |
+| Python programming for AI agents | U3 L1 | P4 |
+| Semantic Kernel fundamentals | U3 L1, L2 | P4, P5 |
+| AutoGen framework | U3 L1, L5 | P6 |
+| Bot Framework integration | U3 L1 | |
+| Asynchronous workflows | U3 L3 | P4 |
+| Memory management | U3 L4 | P5 |
+| State handling | U3 L4 | P5 |
+| Prompt templates | U3 L2 | P4 |
+| Retrieval augmented generation | U3 L4 | P8 |
+| Integration of external tools | U3 L2, L3 | P4 |
+| Building modular AI systems | U3 L3 | |
+| Framework based enterprise development | U3 L3 | |
 
-**Note on Bot Framework.** The Bot Framework SDK reached end of support in
-December 2025 and its repository is archived. The syllabus outcome, connecting
-an agent to a conversational channel, is taught using the Microsoft 365 Agents
-SDK, which is Microsoft's own stated replacement. The retirement itself is
-covered as a short case study in SDK lifecycle risk.
+**Important note on the frameworks named in this unit.** The syllabus names
+Semantic Kernel, AutoGen, and Bot Framework. All three changed status in 2026,
+so this unit teaches them honestly rather than pretending they are current.
+
+- **Semantic Kernel and AutoGen merged into Microsoft Agent Framework 1.0** on
+  3 April 2026. Both are now in maintenance mode, bug fixes only, no new
+  features. Semantic Kernel survives as the foundation layer of the new
+  framework, so its kernel, plugin, and connector concepts are still exactly
+  what you learn. AutoGen's multi-agent ideas were rebuilt on a graph-based
+  model in the new framework, which Unit 4 uses. We teach what each framework
+  was, why they merged, and then build on Agent Framework, because that is the
+  production path today and what an interviewer expects a candidate to know.
+- **Bot Framework SDK reached end of support** in December 2025 and its
+  repository is archived. The syllabus outcome, connecting an agent to a
+  conversational channel, is taught using the Microsoft 365 Agents SDK, its
+  stated replacement. The retirement is covered as a short case study in SDK
+  lifecycle risk, which is itself an interview-worthy topic.
+
+The teaching principle for the whole unit: learn the lineage, understand the
+merger, build on the successor. That sequence covers every syllabus phrase and
+leaves you able to reason about the current landscape, including the competitors
+an interviewer will raise: LangGraph, CrewAI, the community AG2 fork, and the
+Claude Agent SDK.
 
 ## Unit 4, Multi Agent Systems and Collaboration
 
