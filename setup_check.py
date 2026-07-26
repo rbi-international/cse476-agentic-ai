@@ -58,7 +58,7 @@ else:
 # ---------------------------------------------------------------- packages
 header("Packages")
 REQUIRED = ["openai", "python-dotenv", "pydantic", "httpx"]
-OPTIONAL = ["semantic-kernel", "ag2", "azure-ai-inference", "rich"]
+OPTIONAL = ["agent-framework-core", "semantic-kernel", "rich", "pytest"]
 
 for pkg in REQUIRED:
     try:
@@ -71,7 +71,7 @@ for pkg in OPTIONAL:
     try:
         line(PASS, pkg, md.version(pkg))
     except md.PackageNotFoundError:
-        line(DIM + "skip" + OFF, pkg, "not needed yet, arrives in a later unit")
+        line(DIM + "skip" + OFF, pkg, "not installed, needed from Unit 3 on")
 
 # ---------------------------------------------------------------- env file
 header("Configuration")

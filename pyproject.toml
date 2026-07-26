@@ -13,3 +13,10 @@ where = ["src"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.pytest.ini_options]
+# tests live in tests/. The mock_run_*.py files are standalone offline
+# demonstration scripts, not pytest tests, so they are not collected here;
+# run them directly with, for example, python tests/mock_run_u3l2.py
+testpaths = ["tests"]
+python_files = ["test_*.py"]
