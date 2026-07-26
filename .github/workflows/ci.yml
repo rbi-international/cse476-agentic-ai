@@ -16,18 +16,26 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install
+      # WHY we do not install the full requirements here: CI only lints the code
+      # and runs the lanes tests, and those need just the OpenAI client plus the
+      # tooling. The heavy real frameworks (agent-framework, semantic-kernel) are
+      # exercised by the offline mock_run scripts, which are meant to be run
+      # locally in the course environment, not in CI. Installing them here would
+      # make CI slow and fragile for no benefit, since nothing CI checks imports
+      # them. ruff is static and never imports the code it lints.
+      - name: Install what CI actually needs
         run: |
-          pip install -r requirements.txt
-          pip install -e .
-          pip install pytest ruff
+          python -m pip install --upgrade pip
+          pip install openai python-dotenv pytest ruff
+          pip install -e . --no-deps
 
       - name: Lint
         run: ruff check src tests setup_check.py
 
-      # WHY: no API key is available in CI, and that is the point. The lane
-      # abstraction has to be testable without one, or nobody can contribute.
-      - name: Test
+      # WHY no API key: the lane abstraction is designed to be testable without
+      # one, so anyone can contribute and CI can run. If these tests ever need a
+      # key, the design has regressed.
+      - name: Test the lane abstraction
         run: pytest -q
 
       - name: Refuse to merge a committed secret

@@ -11,6 +11,13 @@ skim. If you do exactly what is below, in order, you will have a working setup
 in about fifteen minutes and you will not hit the problems that usually eat the
 first lab. Read it properly once. It saves you time, not the other way round.
 
+**New here? Two files to open first.** `RUN_THIS_PROJECT.md` is the fastest path
+to a working setup, plus a full map of every file and how we run models in this
+course (the Foundry way). Then, for following along file by file, each unit has a
+guide: `docs/unit1/GUIDE.md`, `docs/unit2/GUIDE.md`, `docs/unit3/GUIDE.md`. They
+list every module, notebook, and test, what each does, and the exact command to
+run it.
+
 ---
 
 ## What you need before you start
