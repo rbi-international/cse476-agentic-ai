@@ -135,7 +135,7 @@ notebooks/u2/         Unit 2, same
 notebooks/u3/         Unit 3, built on the real frameworks
 tests/                tests that prove the code works, mostly offline
 practicals/           the ten assessed practicals, one folder each
-slides/               the lecture decks, with PDF handouts in slides/pdf
+slides/               NOT in this repo, see the note below. Shared per lecture.
 
 docs/FOUNDRY_SETUP.md   how I set up Foundry, so you can follow exactly
 docs/LANES.md           the four lanes, and how to get a key for each
@@ -151,6 +151,12 @@ requirements.txt      the exact packages
 .env.example          the template you copy to make your own .env
 .env                  YOUR keys. Never shared, never committed.
 ```
+
+**About the slides.** The lecture decks and their PDF handouts are not in this
+repository. I share each lecture's slides separately, one at a time, as we reach
+that lecture (through the class channel or however we agree in class). So if you
+do not see a `slides/` folder, nothing is broken; the code is here, the slides
+come from me per lecture.
 
 ---
 
