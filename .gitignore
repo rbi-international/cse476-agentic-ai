@@ -23,3 +23,6 @@ chroma_db/
 *.sqlite3
 outputs/
 .DS_Store
+
+# Slides and PDFs: released to students one at a time, not via the repo
+slides/
