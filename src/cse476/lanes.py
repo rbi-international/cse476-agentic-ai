@@ -104,9 +104,32 @@ def _lane(provider: str | None = None) -> Lane:
 
 
 def get_model(provider: str | None = None) -> str:
-    """Model name for the active lane. MODEL in .env overrides the default."""
+    """Model name for the active lane. MODEL in .env overrides the default.
+
+    MODEL is a hard override that applies to whichever lane is active. It exists
+    mainly for Foundry, where the model name must be your deployment name. If you
+    set it for Foundry and later switch to a free lane without unsetting it, the
+    Foundry deployment name leaks through and the free lane returns a confusing
+    404. We catch the common shape of that mistake and say so plainly.
+    """
     override = os.getenv("MODEL", "").strip()
-    return override or _lane(provider).default_model
+    if not override:
+        return _lane(provider).default_model
+
+    lane = _lane(provider)
+    # A GitHub or Groq model name is namespaced or hyphenated in a known way.
+    # A bare Foundry deployment name like "chat-demo" almost never fits those,
+    # so if it is set on a non-foundry lane, it is almost certainly a leftover.
+    if lane.key in ("github", "groq") and "/" not in override and override.count("-") <= 1:
+        raise LaneError(
+            f"MODEL={override!r} is set in your .env, but you are on the "
+            f"'{lane.key}' lane, which does not have a model by that name.\n"
+            f"This usually means MODEL was set for the Foundry lane and left "
+            f"behind after switching. Comment out or delete the MODEL line in "
+            f".env so the '{lane.key}' lane uses its default "
+            f"({lane.default_model}), or set MODEL to a valid {lane.key} model."
+        )
+    return override
 
 
 def get_client(provider: str | None = None) -> OpenAI:
@@ -166,7 +189,22 @@ def get_client(provider: str | None = None) -> OpenAI:
     )
 
 
-MODEL: str = get_model()
+def _model_for_display() -> str:
+    """Module-level MODEL value that never raises on import.
+
+    The mismatch check in get_model is useful at call time, but it must not make
+    'import cse476.lanes' fail, or notebooks that import MODEL break before they
+    can even show the helpful message. So the constant below tolerates a bad
+    override; the clear error still surfaces the moment get_model or get_client
+    is actually called.
+    """
+    try:
+        return get_model()
+    except LaneError:
+        return os.getenv("MODEL", "").strip() or "unset"
+
+
+MODEL: str = _model_for_display()
 
 
 def describe() -> str:

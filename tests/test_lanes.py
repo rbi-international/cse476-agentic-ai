@@ -90,3 +90,21 @@ def test_foundry_bare_host_gets_the_v1_path(monkeypatch):
     monkeypatch.setenv("AZURE_OPENAI_API_KEY", "fake-key-for-testing")
     client = get_client("foundry")
     assert str(client.base_url) == "https://cse476-foundry.openai.azure.com/openai/v1/"
+
+
+def test_foundry_model_leaking_into_github_is_caught(monkeypatch):
+    # MODEL set for foundry, left behind after switching to github, is the
+    # single most common lane mistake. It must produce a clear error, not a 404.
+    monkeypatch.setenv("PROVIDER", "github")
+    monkeypatch.setenv("MODEL", "chat-demo")
+    with pytest.raises(LaneError) as exc:
+        get_model("github")
+    msg = str(exc.value)
+    assert "chat-demo" in msg
+    assert "MODEL line" in msg or "unset" in msg or "delete" in msg
+
+
+def test_a_valid_github_override_is_allowed(monkeypatch):
+    monkeypatch.setenv("PROVIDER", "github")
+    monkeypatch.setenv("MODEL", "openai/gpt-4.1-mini")
+    assert get_model("github") == "openai/gpt-4.1-mini"
