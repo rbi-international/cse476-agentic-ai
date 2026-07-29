@@ -145,6 +145,7 @@ docs/WHY_THIS_COURSE.md why the course is shaped the way it is
 docs/unit1/GUIDE.md     every Unit 1 file, what it does, how to run it
 docs/unit2/GUIDE.md     every Unit 2 file, same
 docs/unit3/GUIDE.md     every Unit 3 file, same
+docs/unit4/GUIDE.md     every Unit 4 file, same
 
 environment.yml       the conda environment definition
 requirements.txt      the exact packages

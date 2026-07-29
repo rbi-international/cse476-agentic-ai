@@ -101,20 +101,42 @@ Claude Agent SDK.
 
 ## Unit 4, Multi Agent Systems and Collaboration
 
-| Syllabus phrase | Where | Practical |
+| Syllabus phrase | Lecture | Module |
 |---|---|---|
-| Introduction to multi agent systems | U4 | P7 |
-| Planner executor architectures | U4 | P7 |
-| Collaborative agents | U4 | P7 |
-| Inter agent communication | U4 | P7 |
-| Task delegation | U4 | P7 |
-| Distributed problem solving | U4 | |
-| Orchestration patterns | U4 | P7 |
-| Agent coordination mechanisms | U4 | P7 |
-| Collaborative enterprise workflows | U4 | P7 |
-| Role based agents | U4 | P6, P7 |
-| Scalable AI collaboration strategies | U4 | |
-| Workflow optimisation for multi agent | U4 | |
+| Introduction to multi agent systems | L1 | orchestration |
+| Orchestration patterns | L1 | orchestration |
+| Distributed problem solving | L1 | orchestration |
+| Inter agent communication | L2, L4 | routing, blackboard |
+| Agent coordination mechanisms | L2 | routing |
+| Task delegation | L3 | manager |
+| Planner executor architectures | L3 | manager |
+| Role based agents | L3 | manager |
+| Collaborative agents | L4 | blackboard |
+| Collaborative enterprise workflows | L4, L5 | blackboard, triage_system |
+| Scalable AI collaboration strategies | L5 | triage_system |
+| Workflow optimisation for multi agent | L5 | triage_system |
+
+**What each Unit 4 lecture actually builds.** Every lecture uses the real
+`agent-framework` package, and every module runs offline because the nodes are
+plain functions writing to real workflow state.
+
+- **L1, `orchestration.py`.** Fan-out and fan-in: one ticket to three reviewers
+  in parallel, gathered by a fan-in that synchronises (a barrier that waits for
+  all). Real `add_fan_out_edges` and `add_fan_in_edges`.
+- **L2, `routing.py`.** A switch-case router: classify once, send to exactly one
+  handler, with a required `Default`. Real `add_switch_case_edge_group`, `Case`,
+  `Default`. Teaches that the framework enforces a default, and hand-rolled
+  conditional edges silently drop unmatched work.
+- **L3, `manager.py`.** The manager pattern: specialist agents wrapped with
+  `as_tool`, a manager that delegates by judgement. The honest trade-off against
+  fixed rules. Specialists and tool wiring run offline; the manager decision
+  needs a lane.
+- **L4, `blackboard.py`.** Shared state: agents read and append findings to a
+  common board via `set_state` and `get_state`. Read-modify-write, and the
+  overwrite bug when an agent forgets to read first.
+- **L5, `triage_system.py`.** The finale: all four primitives composed into one
+  system. Route to a team, fan out the checks onto a shared board, fan in, and
+  decide. The blackboard is the connective tissue that makes composition work.
 
 ## Unit 5, Testing, Monitoring and Deployment
 
