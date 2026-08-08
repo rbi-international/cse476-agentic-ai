@@ -133,6 +133,8 @@ src/cse476/           the shared library every notebook imports
 notebooks/u1/         Unit 1, the code I build live, one notebook per lecture
 notebooks/u2/         Unit 2, same
 notebooks/u3/         Unit 3, built on the real frameworks
+notebooks/u4/         Unit 4, the multi agent collaboration system
+notebooks/u5/         Unit 5, testing through deployment
 tests/                tests that prove the code works, mostly offline
 practicals/           the ten assessed practicals, one folder each
 slides/               NOT in this repo, see the note below. Shared per lecture.
@@ -146,6 +148,7 @@ docs/unit1/GUIDE.md     every Unit 1 file, what it does, how to run it
 docs/unit2/GUIDE.md     every Unit 2 file, same
 docs/unit3/GUIDE.md     every Unit 3 file, same
 docs/unit4/GUIDE.md     every Unit 4 file, same
+docs/unit5/GUIDE.md     every Unit 5 file, same
 
 environment.yml       the conda environment definition
 requirements.txt      the exact packages
@@ -189,6 +192,20 @@ reuse. One module per lecture, plus `lanes.py`, which every module leans on.
 - `agent_fw.py` a real, shippable agent on Microsoft Agent Framework.
 - `rag.py` real sessions for memory, and retrieval built from scratch.
 - `multi_agent.py` a manager over specialists, and a real graph that runs.
+
+**Unit 4, the multi agent system**
+- `orchestration.py` fan out to parallel workers, fan in to combine (the join synchronises).
+- `routing.py` classify then switch-case to one handler, with a required default.
+- `manager.py` a manager that delegates to specialist tools by judgment, not rules.
+- `blackboard.py` a shared state the agents read and write, append not overwrite.
+- `triage_system.py` all four primitives in one system: route, fan out, share, decide.
+
+**Unit 5, testing through deployment**
+- `testing_agents.py` test the skeleton exactly, the model part with a fake; debug by reproduce, isolate, fix, lock in.
+- `validation.py` catch a confidently wrong model: structural, grounding, cross-check, then a gate.
+- `observability.py` the three pillars: a trace, metrics, structured logs.
+- `serving.py` a real FastAPI serving the agent behind a typed contract, tested offline.
+- `deployment.py` a Dockerfile and a CI/CD pipeline of gates; a failing test stops the ship.
 
 ---
 

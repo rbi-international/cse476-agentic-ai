@@ -1,6 +1,6 @@
 # CSE476 Agentic AI and Intelligent Automation
 # Install:  pip install -r requirements.txt
-# Verified working 26 July 2026 (Python 3.12).
+# Verified working 8 August 2026 (Python 3.12).
 
 # --- core, needed from Unit 1 ---
 openai>=2.0.0
@@ -33,8 +33,16 @@ semantic-kernel>=1.44
 pytest>=8.3
 ruff>=0.8
 
-# --- Unit 5, uncomment when we reach it ---
-# fastapi>=0.115
-# uvicorn>=0.32
+# --- Unit 5, serving and deployment ---
+# Unit 5 wraps the agent in a real API (Lecture 4) and packages it (Lecture 5).
+# FastAPI serves the agent behind a typed contract; uvicorn runs it. Both are
+# tested offline with FastAPI's TestClient, so no server is needed for the tests.
+fastapi>=0.115
+uvicorn>=0.32
+
+# --- Unit 5, observability (optional, referenced not required) ---
+# The observability lecture (L3) builds its own lightweight trace/metrics/logs in
+# pure Python so it runs anywhere. These are the production-grade equivalents you
+# would reach for in a real deployment; uncomment if you want to use them.
 # opentelemetry-sdk>=1.29
 # prometheus-client>=0.21

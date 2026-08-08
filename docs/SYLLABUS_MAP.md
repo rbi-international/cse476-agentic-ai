@@ -140,21 +140,43 @@ plain functions writing to real workflow state.
 
 ## Unit 5, Testing, Monitoring and Deployment
 
-| Syllabus phrase | Where | Practical |
+| Syllabus phrase | Lecture | Module |
 |---|---|---|
-| Testing AI agent workflows | U5 | P9 |
-| Debugging techniques | U5 | P9 |
-| Observability and monitoring | U5 | P9 |
-| Telemetry collection | U5 | P9 |
-| Hallucination detection | U5 | P8 |
-| Validation methods | U5 | P8 |
-| Deployment strategies | U5 | P10 |
-| Cloud deployment on Azure | U5 | P10 |
-| API deployment | U5 | P10 |
-| CI/CD integration | U5 | P10 |
-| Scalability considerations | U5 | |
-| Performance optimisation | U5 | P9 |
-| Production ready AI agent systems | U5 | P10 |
+| Testing AI agent workflows | L1 | testing_agents |
+| Debugging techniques | L1 | testing_agents |
+| Hallucination detection | L2 | validation |
+| Validation methods | L2 | validation |
+| Observability and monitoring | L3 | observability |
+| Telemetry collection | L3 | observability |
+| Performance optimisation | L1, L3 | testing_agents, observability |
+| API deployment | L4 | serving |
+| Production ready AI agent systems | L4, L5 | serving, deployment |
+| Scalability considerations | L4, L5 | serving, deployment |
+| Deployment strategies | L5 | deployment |
+| Cloud deployment on Azure | L5 | deployment (Dockerfile, portable image) |
+| CI/CD integration | L5 | deployment (real .github/workflows/ci.yml) |
+
+**What each Unit 5 lecture builds.** Every module runs offline and is tested
+deterministically, the same discipline the whole course uses.
+
+- **L1, `testing_agents.py`.** The split: test the deterministic skeleton exactly,
+  and the model-dependent part with a fake model behind a seam. Plus debugging:
+  reproduce with a ReplayClient, isolate the layer with diagnose_route, and the
+  reproduce-isolate-fix-lock-in recipe. The testing pyramid.
+- **L2, `validation.py`.** Testing checks your code; validation checks the model's
+  output. Three checks: structural (on the menu), grounding (traceable to the
+  source, the heart of hallucination detection), and cross-check (a tool holds the
+  truth). The validator as a gate.
+- **L3, `observability.py`.** The three pillars: a trace (one run, timed, find the
+  slow step), metrics (many runs, latency and failure rate), and structured logs
+  (searchable). Metrics alert, logs locate, a trace explains.
+- **L4, `serving.py`.** An API is a contract. A real FastAPI serves the agent with
+  a typed request and response and a health endpoint, tested offline with a
+  TestClient. The contract rejects malformed requests for free.
+- **L5, `deployment.py`.** Shipping it: a Dockerfile packages the service to run
+  anywhere, and a CI/CD pipeline of gates ships every change safely (a failing
+  test stops the ship). A production-readiness checklist gathers the whole unit,
+  and the real ci.yml has run on every push all along.
 
 ## Unit 6, Responsible AI, Security and Enterprise Governance
 

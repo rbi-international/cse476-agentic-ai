@@ -15,7 +15,7 @@ first lab. Read it properly once. It saves you time, not the other way round.
 to a working setup, plus a full map of every file and how we run models in this
 course (the Foundry way). Then, for following along file by file, each unit has a
 guide: `docs/unit1/GUIDE.md`, `docs/unit2/GUIDE.md`, `docs/unit3/GUIDE.md`,
-`docs/unit4/GUIDE.md`. They
+`docs/unit4/GUIDE.md`, `docs/unit5/GUIDE.md`. They
 list every module, notebook, and test, what each does, and the exact command to
 run it.
 
@@ -264,6 +264,7 @@ notebooks/u1/         the code I build live in each Unit 1 lecture
 notebooks/u2/         and Unit 2, one notebook per lecture
 notebooks/u3/         and Unit 3, built on the real frameworks
 notebooks/u4/         and Unit 4, the multi agent collaboration system
+notebooks/u5/         and Unit 5, testing through deployment
 docs/                 setup, lanes, troubleshooting, syllabus map, unit guides
 tests/                tests that prove the code works, offline
 environment.yml       the conda environment definition
