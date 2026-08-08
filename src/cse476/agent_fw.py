@@ -20,9 +20,7 @@ package. Running the agent needs a lane, because that is a live model call.
 
 from __future__ import annotations
 
-import os
 from typing import Annotated, Any
-
 
 # ---------------------------------------------------------------- the tools
 
@@ -106,19 +104,20 @@ def build_support_agent(client: Any) -> Any:
 
 def make_client() -> Any:
     """
-    Build the Agent Framework chat client from the same env vars as our lanes.
+    Build the Agent Framework chat client for whatever lane is active in .env.
 
     Kept separate from build_support_agent so the agent builder stays lane
     agnostic. This is the only piece that reaches out, so it is the only piece
-    that needs credentials.
+    that needs credentials. It asks lanes.py for the resolved base_url, key, and
+    model, so switching providers is a one line change in .env and this code never
+    names a provider.
     """
     from agent_framework.openai import OpenAIChatClient
 
-    return OpenAIChatClient(
-        model=os.environ.get("MODEL", "openai/gpt-4.1-mini"),
-        api_key=os.environ["GITHUB_TOKEN"],
-        base_url="https://models.github.ai/inference",
-    )
+    from cse476.lanes import get_connection
+
+    base_url, api_key, model = get_connection()
+    return OpenAIChatClient(model=model, api_key=api_key, base_url=base_url)
 
 
 # ---------------------------------------------------------------- the mapping

@@ -24,7 +24,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 # ---------------------------------------------------------------- the specialists
 
 # WHY separate specialist agents instead of one big agent: each specialist has a
@@ -116,15 +115,12 @@ def build_manager(client: Any) -> Any:
 
 def make_client() -> Any:
     """The Agent Framework client for the active lane. Only this reaches out."""
-    import os
-
     from agent_framework.openai import OpenAIChatClient
 
-    return OpenAIChatClient(
-        model=os.environ.get("MODEL", "openai/gpt-4.1-mini"),
-        api_key=os.environ["GITHUB_TOKEN"],
-        base_url="https://models.github.ai/inference",
-    )
+    from cse476.lanes import get_connection
+
+    base_url, api_key, model = get_connection()
+    return OpenAIChatClient(model=model, api_key=api_key, base_url=base_url)
 
 
 # ---------------------------------------------------------------- the trade-off

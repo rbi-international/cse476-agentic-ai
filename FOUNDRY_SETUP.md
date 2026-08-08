@@ -11,7 +11,7 @@ that can cost you real money if you skip it. Everything after that is safe once
 section 1 is done.
 
 If your Foundry account is not ready yet, that is fine. Do the coursework on the
-free GitHub Models lane in the meantime (see `docs/LANES.md`), and switch to
+free Groq lane in the meantime (see `docs/LANES.md`), and switch to
 Foundry the moment you are set up. Switching is one line in your `.env`, and none
 of your code changes. But do get onto Foundry, because running agents on Foundry
 the professional way is the whole point of this course.
@@ -259,7 +259,7 @@ python setup_check.py
 You want the `foundry` lane to show `credential present` and the live call to
 pass. Once it does, your Foundry setup is real and working.
 
-For day to day coursework you can switch `PROVIDER` back to `github` (the free
+For day to day coursework you can switch `PROVIDER` back to `groq` (the free
 lane) so you are not spending Foundry quota on every small experiment, and switch
 to `foundry` when you specifically want to run on Foundry. Because the lane is one
 setting, flipping between them costs you nothing and changes no code.

@@ -38,8 +38,9 @@ the terminal. If you miss it, reinstall and tick it.
 the Extensions panel on the left, and install the **Python** and **Jupyter**
 extensions. Those two let VS Code run our notebooks.
 
-You also need a **GitHub account**. You need it for the code and for the free
-model access in Lane B, so make one now at github.com if you do not have one.
+You also need a **GitHub account** for the course code (cloning the repository).
+Make one at github.com if you do not have one. Model access no longer comes from
+GitHub; that is a separate free key from Groq, covered in Step 4.
 
 ---
 
@@ -148,38 +149,37 @@ cp .env.example .env          # Mac, Linux, Git Bash
 # copy .env.example .env      # Windows PowerShell or cmd
 ```
 
-Now open `.env` in VS Code and fill in **one** lane. You do not need all four. I
-strongly recommend starting with Lane B, because it is free and takes two
+Now open `.env` in VS Code and fill in **one** lane. You do not need all of them.
+I strongly recommend starting with Groq, because it is free and takes two
 minutes.
 
-### Lane B: GitHub Models  (free, start here)
+### Lane 1: Groq  (free, start here)
 
-This is your default. It is free model access through Microsoft's own
-infrastructure, tied to the GitHub account you already have.
+This is your default. It is fast, free model access on strong open models, with
+no card and about two minutes of setup.
 
-1. Go to github.com/settings/tokens
-2. Generate a new **classic** token
-3. Tick **no scopes at all**. Genuinely none. It still works.
-4. Copy it into `GITHUB_TOKEN=` in your `.env`
-5. Make sure the top of `.env` says `PROVIDER=github`
+1. Go to console.groq.com/keys
+2. Sign in (GitHub or Google works) and create an API key
+3. Copy it into `GROQ_API_KEY=` in your `.env`
+4. Make sure the top of `.env` says `PROVIDER=groq`
 
-That is it. You are done. Skip to Step 5.
+That is it. You are done. Skip to Step 5. You do not need a `MODEL` line; the
+lane defaults to a sensible model.
 
-The other three lanes are there when you want them. Full detail on all of them,
+> **Note on GitHub Models.** Earlier versions of this course used GitHub Models
+> as the free default. GitHub retired that service on 30 July 2026, so it no
+> longer works and has been removed. Groq is its replacement.
+
+The other lanes are there when you want them. Full detail on all of them,
 including where each key comes from and what the real limits are, is in
 [`docs/LANES.md`](docs/LANES.md). Here is the short version.
 
-### Lane C: Groq  (free, fast)
+### Lane 2: Ollama  (free, on your own machine)
 
-A key from console.groq.com into `GROQ_API_KEY`, and `PROVIDER=groq`. Fast, but
-its free tier is small since 2026, roughly a thousand requests a day.
+Install from ollama.com, run `ollama pull llama3.2`, and set `PROVIDER=local`. No
+key, and it never runs out, the safe fallback if Groq's daily cap is hit.
 
-### Lane D: Ollama  (free forever, runs on your laptop)
-
-Install from ollama.com, run `ollama pull llama3.2`, set `PROVIDER=local`. No
-key. Slow and weak, and it never goes down and never runs out. Your safety net.
-
-### Lane A: Microsoft Foundry  (the real enterprise platform)
+### Lane 3: Microsoft Foundry  (the real enterprise platform)
 
 This is what I demonstrate on in class, on my own account. **You do not need it
 for any practical.** But some of you will want to follow exactly what I do, so

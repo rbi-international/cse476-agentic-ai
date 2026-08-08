@@ -1,96 +1,57 @@
-# The four lanes
+# The lanes
 
-You only need one. I have set the course up so the default, Lane B, is free and
-takes about two minutes. Read that section, ignore the rest until you need it.
+You only need one. The default, **Groq**, is free and takes about two minutes.
+Read that section, ignore the rest until you need it.
 
-The whole idea: your code never names a provider. You pick a lane in `.env`,
-and every notebook runs the same way regardless. I built it like this on
-purpose, so that nobody in the class is ever blocked from a practical for lack
-of money, and so the code you write works unchanged whether you are on my paid
-demo account or your own free key.
+The whole idea: your code never names a provider. You pick a lane in `.env`, and
+every notebook runs the same way regardless. I built it like this on purpose, so
+that nobody in the class is ever blocked from a practical for lack of money, and
+so the code you write works unchanged whether you are on my paid demo account or
+your own free key.
+
+> **GitHub Models has been retired.** GitHub shut GitHub Models down on 30 July
+> 2026, so that lane now returns a 410 error for everyone and has been removed as
+> an option. If an old `.env` still says `PROVIDER=github`, switch it to `groq`
+> or `local` below. The rest of the course is unchanged: the lane abstraction was
+> built for exactly this kind of provider change, so it is a one-line edit, not a
+> rewrite.
 
 ---
 
-## Lane B, GitHub Models  (start here)
+## Lane 1, Groq  (start here)
 
-This is the one I want you on. It gives you free API access to a catalogue of
-frontier and open models through an Azure-hosted, OpenAI-compatible endpoint,
-and you already need a GitHub account for the course repository, so you are
-most of the way there already.
+This is the one I want you on. It gives you fast, free API access to a set of
+strong open models through an OpenAI-compatible endpoint, with no card and about
+two minutes of setup.
 
-**Endpoint:** `https://models.github.ai/inference`
+**Endpoint:** `https://api.groq.com/openai/v1`
 
 **Get a credential**
-1. Go to github.com/settings/tokens
-2. Generate new token, classic
-3. Tick **no scopes at all**. You do not need any.
-4. Paste it into `GITHUB_TOKEN` in your `.env`
+1. Go to console.groq.com/keys
+2. Sign in (GitHub or Google works)
+3. Create an API key
+4. Paste it into `GROQ_API_KEY` in your `.env`, and set `PROVIDER=groq`
 
-**Model names are namespaced here.** Use `openai/gpt-4.1-mini`, not
-`gpt-4.1-mini`. The catalogue is at github.com/marketplace/models.
+**Model names.** The lane defaults to `llama-3.3-70b-versatile`, which is plenty
+for class. You do not need to set `MODEL` at all. The catalogue is at
+console.groq.com/docs/models.
 
-**The limit, told honestly.** Requests are capped at roughly 8K tokens in and
-4K out, with a modest rate limit that depends on your GitHub plan. That is
-comfortable for everything we do in class and genuinely too small for
-production. Knowing exactly where a free tier stops being enough is a real
-skill, so in Unit 5 we measure it rather than guess.
-
----
-
-## Lane A, Microsoft Foundry
-
-This is the real enterprise platform, and it is the one I demonstrate on in
-class, on my account. You do not need it to pass a single practical. If you
-want to run the Foundry parts yourself, here is how.
-
-Foundry was called Azure AI Foundry until Ignite in November 2025, and Azure AI
-Studio before that. Same platform, renamed twice. When you search for help you
-will hit all three names.
-
-The current Foundry surface is OpenAI-compatible, which means this lane uses the
-plain `OpenAI` client, exactly like the GitHub and Groq lanes. There is no
-special Azure client and no API version to track. That is a deliberate
-simplification on Microsoft's side and it makes the whole thing easier to teach.
-
-```
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/openai/v1/
-AZURE_OPENAI_API_KEY=...
-MODEL=your-deployment-name
-```
-
-**Two things catch everybody, so I am flagging them up front.**
-
-- The endpoint has to be the **v1 base**, ending in `/openai/v1/`. Get it from
-  the portal: open your deployment, click the key icon, copy the Endpoint. I
-  wrote the lane to tidy up a trailing slash or a pasted `/responses` path for
-  you, so a slightly messy copy still works, but the host itself must be right.
-- Foundry routes by **deployment name**, not model name. When I set up the
-  course account I deployed `gpt-5-mini` and named the deployment `chat-demo`,
-  so `MODEL=chat-demo`. Get this wrong and you get a 404 that reads as though
-  the model does not exist, which sends people debugging in the wrong place for
-  an hour. It is almost always this.
+**The limit, told honestly.** Groq cut its free tier during 2026, down to roughly
+1,000 requests per day on most models, with a modest per-minute rate limit. That
+is comfortable for one person working through a practical and genuinely too small
+for production. Knowing exactly where a free tier stops being enough is a real
+skill, so in Unit 5 we measure it rather than guess. If a full lab hits it at
+once and you see rate-limit errors, switch to Lane 2 (Ollama), which never runs
+out.
 
 ---
 
-## Lane C, Groq
-
-Fast inference on open models, free tier, no card. A good option if you want
-speed and Lane B is being slow.
-
-Get a key at console.groq.com and set `GROQ_API_KEY`.
-
-**One warning.** Groq cut its free tier limits during 2026, down to roughly
-1,000 requests per day on most models. Older tutorials quote a far higher
-figure, so do not be surprised when you hit the wall sooner than they suggest.
-Fine for one person working alone, tight for a full lab hitting it at once.
-
----
-
-## Lane D, Ollama, on your own machine
+## Lane 2, Ollama, on your own machine  (free, no key, no limit)
 
 Nothing to sign up for and nothing to run out of. It is slower and weaker than
 every other lane, and it will never fail you the night before a submission,
-which is exactly why I keep it in the course.
+which is exactly why I keep it in the course. It is also the safe fallback when
+Groq's daily cap is exhausted.
 
 ```bash
 # install from ollama.com, then
@@ -98,12 +59,65 @@ ollama pull llama3.2
 ollama serve            # usually already running after install
 ```
 
-Set `PROVIDER=local`. No key needed.
+Then set `PROVIDER=local` in your `.env`. No key, no `MODEL` line; the lane
+defaults to `llama3.2`.
 
-**What to expect.** A 3B model will follow simple tool schemas and will
-struggle with the multi-step reasoning in Unit 4. That is not a bug in your
-code, it is a real and useful lesson about what model size buys you, and we
-lean into it rather than hiding it.
+**What to expect.** A 3B model will follow simple tool schemas and will struggle
+with the multi-step reasoning in Unit 4. That is not a bug in your code, it is a
+real and useful lesson about what model size buys you, and we lean into it rather
+than hiding it.
+
+---
+
+## Lane 3, Microsoft Foundry
+
+This is the real enterprise platform, and it is the one I demonstrate on in
+class, on my account. You do not need it to pass a single practical. If you want
+to run the Foundry parts yourself, here is how.
+
+Foundry was called Azure AI Foundry until Ignite in November 2025, and Azure AI
+Studio before that. Same platform, renamed twice. When you search for help you
+will hit all three names.
+
+The current Foundry surface is OpenAI-compatible, which means this lane uses the
+plain `OpenAI` client, exactly like the Groq lane. There is no special Azure
+client and no API version to track. That is a deliberate simplification on
+Microsoft's side and it makes the whole thing easier to teach.
+
+```
+AZURE_OPENAI_ENDPOINT=https://your-resource.services.ai.azure.com/api/projects/your-project/openai/v1/
+AZURE_OPENAI_API_KEY=...
+MODEL=your-deployment-name
+```
+
+**Two things catch everybody, so I am flagging them up front.**
+
+- The endpoint has to be the **v1 base**, ending in `/openai/v1/`. Get it from
+  the portal: open your project home, copy the Endpoint. I wrote the lane to tidy
+  up a trailing slash or a pasted `/responses` path for you, so a slightly messy
+  copy still works, but the host itself must be right.
+- Foundry routes by **deployment name**, not model name. When I set up the course
+  account I deployed `gpt-5-mini` and named the deployment `chat-demo`, so
+  `MODEL=chat-demo`. Get this wrong and you get a 404 that reads as though the
+  model does not exist, which sends people debugging in the wrong place for an
+  hour. It is almost always this.
+- Keep the `MODEL` line **only** in the Foundry block of your `.env`. If it is
+  left set after you switch back to a free lane, that free lane tries to use
+  `chat-demo` and fails. The lane catches this and tells you, but it is easier to
+  never let it happen.
+
+---
+
+## Retired, GitHub Models
+
+GitHub Models used to be the free default for this course. GitHub retired it on
+30 July 2026, after two warning brownouts earlier that month, and the inference
+API now returns a 410 error for every account, including ones with prior usage.
+There is no token or setting that brings it back. If your `.env` still selects
+it, the course code will stop and tell you to switch to Groq or Ollama. This is
+the second provider shake-up in a year, which is exactly why the course routes
+everything through one lane abstraction: when a provider disappears, you change
+one line, not forty notebooks.
 
 ---
 

@@ -38,7 +38,21 @@ same environment. Always run course notebooks on the **Python (cse476)** kernel.
 
 ---
 
-### `LaneError: Lane 'github' ... GITHUB_TOKEN is not set`
+### `410 github_models_retirement_brownout` or `Lane 'github' is no longer available`
+
+GitHub Models was retired on 30 July 2026 and no longer works for anyone. If your
+`.env` still says `PROVIDER=github`, switch to a free lane:
+
+```
+PROVIDER=groq
+GROQ_API_KEY=your-key      # from console.groq.com/keys
+```
+
+or `PROVIDER=local` to run Ollama on your own machine (no key needed).
+
+---
+
+### `LaneError: ... GROQ_API_KEY is not set`
 
 Either `.env` does not exist, or the variable is empty, or you edited
 `.env.example` by mistake instead of `.env`.
@@ -53,21 +67,19 @@ Then edit `.env`, not `.env.example`.
 
 ### `404` or `The model does not exist`
 
-**On Lane B (github):** model names are namespaced. Use `openai/gpt-4.1-mini`.
+**On Foundry:** `MODEL` must be your **deployment name** from the Foundry portal,
+not the model name.
 
-**On Lane A (foundry):** `MODEL` must be your **deployment name** from the
-Foundry portal, not the model name.
-
-**`Unknown model: /chat-demo` (or your deployment name) on a free lane.** You set
-`MODEL` in `.env` for Foundry, then switched `PROVIDER` to `github` or `groq`
-without unsetting `MODEL`. `MODEL` is a hard override that applies to whatever
-lane is active, so your Foundry deployment name leaked into the free lane, which
-has no model by that name. Fix it by commenting out or deleting the `MODEL` line
-in `.env`:
+**`Unknown model: chat-demo` (or your deployment name) on a free lane.** You set
+`MODEL` in `.env` for Foundry, then switched `PROVIDER` to `groq` without
+unsetting `MODEL`. `MODEL` is a hard override that applies to whatever lane is
+active, so your Foundry deployment name leaked into the free lane, which has no
+model by that name. Fix it by commenting out or deleting the `MODEL` line in
+`.env`:
 
 ```
-PROVIDER=github
-GITHUB_TOKEN=your-token
+PROVIDER=groq
+GROQ_API_KEY=your-key
 # MODEL=chat-demo      <- comment out or delete; only Foundry needs it
 ```
 

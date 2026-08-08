@@ -21,9 +21,7 @@ describe_landscape and the mapping table need nothing and are always testable.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
-
 
 # ---------------------------------------------------------------- the landscape
 
@@ -134,14 +132,13 @@ async def framework_agent(prompt: str) -> str:
     """
     from agent_framework.openai import OpenAIChatClient
 
-    # WHY these come from the same env vars as our lanes: the framework's client
-    # is the industrial version of get_client. Same model, same key, same base
-    # url. Nothing new to configure.
-    client = OpenAIChatClient(
-        model=os.environ.get("MODEL", "gpt-4.1-mini"),
-        api_key=os.environ["GITHUB_TOKEN"],
-        base_url="https://models.github.ai/inference",
-    )
+    from cse476.lanes import get_connection
+
+    # WHY these come from the lane system: the framework's client is the
+    # industrial version of get_client. Same model, same key, same base url,
+    # whichever lane is active. Nothing new to configure, and no provider named.
+    base_url, api_key, model = get_connection()
+    client = OpenAIChatClient(model=model, api_key=api_key, base_url=base_url)
 
     # as_agent is the framework's tiny_agent: instructions in, an agent out.
     agent = client.as_agent(
@@ -165,9 +162,12 @@ async def kernel_agent(prompt: str) -> str:
     from semantic_kernel.agents import ChatCompletionAgent
     from semantic_kernel.connectors.ai.open_ai import OpenAIChatCompletion
 
+    from cse476.lanes import get_connection
+
+    _base_url, api_key, model = get_connection()
     service = OpenAIChatCompletion(
-        ai_model_id=os.environ.get("MODEL", "gpt-4.1-mini"),
-        api_key=os.environ["GITHUB_TOKEN"],
+        ai_model_id=model,
+        api_key=api_key,
         # SK's OpenAI connector accepts a custom base url via async_client, but
         # for the lecture we keep the shape visible and let the notebook wire the
         # exact client. The teaching point is the structure, not this one arg.

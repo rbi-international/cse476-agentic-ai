@@ -17,7 +17,15 @@ If you are in a notebook, restart the kernel after installing.
 
 ---
 
-### `LaneError: Lane 'github' ... GITHUB_TOKEN is not set`
+### `410 github_models_retirement_brownout` or `Lane 'github' is no longer available`
+
+GitHub Models was retired on 30 July 2026 and no longer works. Switch to a free
+lane: set `PROVIDER=groq` with `GROQ_API_KEY` (from console.groq.com/keys), or
+`PROVIDER=local` to run Ollama on your own machine (no key needed).
+
+---
+
+### `LaneError: ... GROQ_API_KEY is not set`
 
 Either `.env` does not exist, or the variable is empty, or you edited
 `.env.example` by mistake instead of `.env`.
@@ -32,10 +40,9 @@ Then edit `.env`, not `.env.example`.
 
 ### `404` or `The model does not exist`
 
-**On Lane B (github):** model names are namespaced. Use `openai/gpt-4.1-mini`.
-
-**On Lane A (foundry):** `MODEL` must be your **deployment name** from the
-Foundry portal, not the model name.
+**On Foundry:** `MODEL` must be your **deployment name** from the Foundry portal,
+not the model name. If `MODEL=chat-demo` is set and you are on a free lane, that
+is a leftover, comment it out.
 
 ---
 

@@ -10,7 +10,7 @@ It checks your Python version, your packages, your .env file, and every lane
 you have configured. It never guesses. If something is missing it tells you the
 exact command or the exact line to add.
 
-Nothing here needs a paid account. If you have a GitHub account you can pass.
+Nothing here needs a paid account. Groq has a free tier, and Ollama runs free on your own machine.
 """
 
 from __future__ import annotations
@@ -96,10 +96,12 @@ try:
 except Exception as exc:  # noqa: BLE001
     line(FAIL, "cannot import cse476.lanes", str(exc))
     problems.append("Run: pip install -e .   from the repository root.")
-    LANES, PROVIDER = {}, "github"
+    LANES, PROVIDER = {}, "groq"
 
 configured: list[str] = []
 for key, lane in LANES.items():
+    if getattr(lane, "retired", False):
+        continue  # GitHub Models retired 30 July 2026; do not offer it
     if key == "local":
         try:
             import httpx
@@ -126,8 +128,9 @@ for key, lane in LANES.items():
 if not configured:
     line(FAIL, "no lane is usable")
     problems.append(
-        "Set at least one lane. The easiest is GITHUB_TOKEN in .env.\n"
-        "      Create one at github.com/settings/tokens with no scopes selected."
+        "Set at least one lane. The easiest free options are:\n"
+        "      PROVIDER=groq  with GROQ_API_KEY in .env (key at console.groq.com/keys), or\n"
+        "      PROVIDER=local with Ollama running on your own machine (no key needed)."
     )
 elif PROVIDER not in configured:
     line(FAIL, f"PROVIDER={PROVIDER}", "selected lane is not configured")
@@ -139,7 +142,8 @@ else:
 header("Live call")
 if PROVIDER in configured:
     try:
-        from cse476.lanes import get_client, get_model as gm
+        from cse476.lanes import get_client
+        from cse476.lanes import get_model as gm
 
         client = get_client()
         r = client.chat.completions.create(

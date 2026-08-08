@@ -32,7 +32,7 @@ print("\n1. the three specialists build against the real framework")
 try:
     from agent_framework.openai import OpenAIChatClient
     client = OpenAIChatClient(model="x", api_key="dummy",
-                              base_url="https://models.github.ai/inference")
+                              base_url="https://example.invalid/v1")
     specialists = build_specialists(client)
     chk("three specialists", len(specialists) == 3)
     chk("billing, technical, account", set(specialists) == {"billing", "technical", "account"})

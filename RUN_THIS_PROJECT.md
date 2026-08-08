@@ -85,22 +85,18 @@ still pending. The code is written around a **lane** abstraction: one setting,
 changes**. So you can develop on a free lane today and switch to Foundry the
 moment your account is ready, with a one line change.
 
-There are four lanes. `docs/LANES.md` has the full detail; here is how to get a
-key for each, quickest first.
+There are three working lanes (plus Foundry). `docs/LANES.md` has the full
+detail; here is how to get a key for each, quickest first.
 
-**GitHub Models, the easy free lane. Recommended while you wait for Foundry.**
-Free, no card, and enough for all the coursework.
-1. Go to `github.com/settings/tokens`
-2. Generate a new token (classic). Tick **no** scopes at all.
-3. Copy it into `GITHUB_TOKEN` in your `.env`, and set `PROVIDER=github`.
-
-**Groq, a fast free lane.** Also free.
-1. Go to `console.groq.com` and sign in.
+**Groq, the easy free lane. Recommended while you wait for Foundry.** Free, no
+card, and enough for all the coursework.
+1. Go to `console.groq.com/keys` and sign in.
 2. Create an API key.
 3. Copy it into `GROQ_API_KEY` in your `.env`, and set `PROVIDER=groq`.
 
-**Ollama, fully offline on your own machine.** No key, no internet, no cost,
-but you need a machine that can run a small model locally.
+**Ollama, fully offline on your own machine.** No key, no internet, no cost, but
+you need a machine that can run a small model locally. This is the safe fallback
+if Groq's daily cap is hit.
 1. Install Ollama from `ollama.com`.
 2. Pull a small model, for example `ollama pull llama3.2`.
 3. Set `PROVIDER=local`. There is no key to set.
@@ -108,9 +104,15 @@ but you need a machine that can run a small model locally.
 **Foundry, the one this course is really about.** See section 2 and
 `docs/FOUNDRY_SETUP.md`.
 
-The whole point of the lane design: **do your daily work on GitHub Models if you
-must, but move to Foundry as soon as you can, because Foundry is what this course
-is preparing you for.** Switching is one line in `.env`. Your code never changes.
+> **GitHub Models is gone.** It used to be the easy free lane, but GitHub retired
+> it on 30 July 2026, so it now returns a 410 error and has been removed. Use Groq
+> or Ollama instead.
+
+The whole point of the lane design: **do your daily work on a free lane (Groq or
+Ollama), but move to Foundry as soon as you can, because Foundry is what this
+course is preparing you for.** Switching is one line in `.env`. Your code never
+changes. GitHub Models being retired mid-course, and this being a one-line fix, is
+that design proving its worth.
 
 To see which lane you are on at any time:
 

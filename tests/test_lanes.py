@@ -26,7 +26,8 @@ def test_unknown_provider_names_the_valid_ones():
     msg = str(e.value)
     assert "not a lane" in msg
     for key in LANES:
-        assert key in msg
+        if not LANES[key].retired:
+            assert key in msg
 
 
 def test_missing_credential_tells_you_the_variable(monkeypatch):
@@ -41,7 +42,7 @@ def test_missing_foundry_config_offers_the_free_fallback(monkeypatch):
     monkeypatch.delenv("AZURE_OPENAI_API_KEY", raising=False)
     with pytest.raises(LaneError) as e:
         get_client("foundry")
-    assert "PROVIDER=github" in str(e.value)
+    assert "PROVIDER=groq" in str(e.value)
 
 
 def test_local_lane_needs_no_credential(monkeypatch):
@@ -53,7 +54,7 @@ def test_local_lane_needs_no_credential(monkeypatch):
 
 def test_model_override_wins(monkeypatch):
     monkeypatch.setenv("MODEL", "some/other-model")
-    assert get_model("github") == "some/other-model"
+    assert get_model("groq") == "some/other-model"
 
 
 def test_describe_is_one_line():
@@ -67,7 +68,7 @@ def test_foundry_needs_endpoint_and_key(monkeypatch):
         get_client("foundry")
     msg = str(e.value)
     assert "/openai/v1/" in msg
-    assert "PROVIDER=github" in msg
+    assert "PROVIDER=groq" in msg
 
 
 def test_foundry_normalises_a_messy_endpoint(monkeypatch):
@@ -92,19 +93,29 @@ def test_foundry_bare_host_gets_the_v1_path(monkeypatch):
     assert str(client.base_url) == "https://cse476-foundry.openai.azure.com/openai/v1/"
 
 
-def test_foundry_model_leaking_into_github_is_caught(monkeypatch):
-    # MODEL set for foundry, left behind after switching to github, is the
+def test_foundry_model_leaking_into_a_free_lane_is_caught(monkeypatch):
+    # MODEL set for foundry, left behind after switching to a free lane, is the
     # single most common lane mistake. It must produce a clear error, not a 404.
-    monkeypatch.setenv("PROVIDER", "github")
+    monkeypatch.setenv("PROVIDER", "groq")
     monkeypatch.setenv("MODEL", "chat-demo")
     with pytest.raises(LaneError) as exc:
-        get_model("github")
+        get_model("groq")
     msg = str(exc.value)
     assert "chat-demo" in msg
     assert "MODEL line" in msg or "unset" in msg or "delete" in msg
 
 
-def test_a_valid_github_override_is_allowed(monkeypatch):
-    monkeypatch.setenv("PROVIDER", "github")
-    monkeypatch.setenv("MODEL", "openai/gpt-4.1-mini")
-    assert get_model("github") == "openai/gpt-4.1-mini"
+def test_a_valid_groq_override_is_allowed(monkeypatch):
+    monkeypatch.setenv("PROVIDER", "groq")
+    monkeypatch.setenv("MODEL", "llama-3.1-8b-instant")
+    assert get_model("groq") == "llama-3.1-8b-instant"
+
+
+def test_retired_github_lane_explains_the_migration():
+    # GitHub Models was retired on 30 July 2026. Selecting it must give a clear
+    # migration message pointing at the free replacements, not a raw 410.
+    with pytest.raises(LaneError) as exc:
+        _lane("github")
+    msg = str(exc.value)
+    assert "no longer available" in msg
+    assert "groq" in msg and "local" in msg

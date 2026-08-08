@@ -74,7 +74,7 @@ print("\n8. the manager builds against the real framework")
 try:
     from agent_framework.openai import OpenAIChatClient
     client = OpenAIChatClient(model="x", api_key="dummy",
-                              base_url="https://models.github.ai/inference")
+                              base_url="https://example.invalid/v1")
     manager = build_manager(client)
     chk("manager constructed", manager is not None)
     chk("manager has run", hasattr(manager, "run"))

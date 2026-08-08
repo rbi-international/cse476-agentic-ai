@@ -50,7 +50,7 @@ try:
     from agent_framework.openai import OpenAIChatClient
     # a dummy client is enough to prove construction; no call is made
     client = OpenAIChatClient(model="x", api_key="dummy",
-                              base_url="https://models.github.ai/inference")
+                              base_url="https://example.invalid/v1")
     agent = build_support_agent(client)
     chk("agent constructed", agent is not None)
     chk("agent has run", hasattr(agent, "run"))
