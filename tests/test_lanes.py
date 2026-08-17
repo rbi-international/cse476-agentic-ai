@@ -107,8 +107,8 @@ def test_foundry_model_leaking_into_a_free_lane_is_caught(monkeypatch):
 
 def test_a_valid_groq_override_is_allowed(monkeypatch):
     monkeypatch.setenv("PROVIDER", "groq")
-    monkeypatch.setenv("MODEL", "llama-3.1-8b-instant")
-    assert get_model("groq") == "llama-3.1-8b-instant"
+    monkeypatch.setenv("MODEL", "openai/gpt-oss-120b")
+    assert get_model("groq") == "openai/gpt-oss-120b"
 
 
 def test_retired_github_lane_explains_the_migration():

@@ -76,7 +76,7 @@ LANES: dict[str, Lane] = {
         name="Groq",
         base_url="https://api.groq.com/openai/v1",
         key_env="GROQ_API_KEY",
-        default_model="llama-3.3-70b-versatile",
+        default_model="openai/gpt-oss-20b",
         free=True,
         note="Free default for this course. Fast. Get a key at console.groq.com/keys.",
     ),

@@ -32,7 +32,7 @@ two minutes of setup.
 3. Create an API key
 4. Paste it into `GROQ_API_KEY` in your `.env`, and set `PROVIDER=groq`
 
-**Model names.** The lane defaults to `llama-3.3-70b-versatile`, which is plenty
+**Model names.** The lane defaults to `openai/gpt-oss-20b`, which is fast and plenty
 for class. You do not need to set `MODEL` at all. The catalogue is at
 console.groq.com/docs/models.
 
