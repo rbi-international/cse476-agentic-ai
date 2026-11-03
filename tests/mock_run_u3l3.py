@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.agent_fw import (  # noqa: E402
+from cse476.agent_fw import (
     AGENT_FRAMEWORK_MAP,
     QUEUES,
     TRIAGE_TOOLS,

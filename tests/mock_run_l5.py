@@ -9,15 +9,15 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.architectures import REGISTRY, TOOL_SCHEMA  # noqa: E402
-from cse476.tiny_agent import REGISTRY as TINY_REGISTRY  # noqa: E402
-from cse476.tiny_agent import TOOL_SCHEMA as TINY_SCHEMA  # noqa: E402
-from cse476.design import (  # noqa: E402
+from cse476.architectures import REGISTRY, TOOL_SCHEMA
+from cse476.design import (
     AgentSpec,
     audit_guards,
     audit_tools,
     report,
 )
+from cse476.tiny_agent import REGISTRY as TINY_REGISTRY
+from cse476.tiny_agent import TOOL_SCHEMA as TINY_SCHEMA
 
 ok = True
 

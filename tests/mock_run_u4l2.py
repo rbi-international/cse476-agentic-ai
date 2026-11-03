@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.routing import (  # noqa: E402
+from cse476.routing import (
     ROUTING_MAP,
     build_router,
     fan_out_vs_route,

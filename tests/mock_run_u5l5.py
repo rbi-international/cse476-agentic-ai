@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.deployment import (  # noqa: E402
+from cse476.deployment import (
     DEPLOYMENT_MAP,
     READINESS_CHECKS,
     STANDARD_PIPELINE,

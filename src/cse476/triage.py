@@ -18,8 +18,9 @@ would do is a mistake that costs money, latency and reliability.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 # ---------------------------------------------------------------- the world
 
@@ -274,7 +275,7 @@ def _parse_queue(text: str) -> str:
 def compare(results: dict[str, Triage]) -> str:
     """Put the three shapes side by side for a notebook."""
     lines = [f"{'shape':<10} {'calls':>6} {'queue':<12} reason"]
-    for _, t in results.items():
+    for t in results.values():
         lines.append(
             f"{t.shape:<10} {t.model_calls:>6} {t.queue:<12} {t.reason[:52]}"
         )

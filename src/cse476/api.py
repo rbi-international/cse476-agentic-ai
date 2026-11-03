@@ -19,9 +19,9 @@ it, translate it, and hand the model a clean sentence, not a raw payload.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Protocol
-
+from typing import Any, Protocol
 
 # ---------------------------------------------------------------- the transport
 
@@ -89,7 +89,7 @@ class HttpClient:
             resp = self.transport.get(url, headers=headers, timeout=self.timeout)
         except TimeoutError as e:
             raise ApiError(f"Request to {path} timed out after {self.timeout}s.") from e
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             raise ApiError(f"Request to {path} failed: {e}") from e
 
         return self._handle(path, resp)

@@ -19,9 +19,9 @@ enrich, and assign.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
-
+from typing import Any
 
 # ---------------------------------------------------------------- one step
 
@@ -227,7 +227,7 @@ class EventBus:
             try:
                 handler(event)
                 ran += 1
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S112
                 # one bad handler must not take down the others
                 continue
         return ran

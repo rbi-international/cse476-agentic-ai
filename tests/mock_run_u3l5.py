@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.multi_agent import (  # noqa: E402
+from cse476.multi_agent import (
     GRAPH_MAP,
     build_manager,
     build_triage_graph,

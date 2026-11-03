@@ -10,9 +10,9 @@ import warnings
 warnings.filterwarnings("ignore")  # silence the httpx testclient deprecation notice
 sys.path.insert(0, "src")
 
-from fastapi.testclient import TestClient  # noqa: E402
+from fastapi.testclient import TestClient
 
-from cse476.serving import (  # noqa: E402
+from cse476.serving import (
     SERVING_MAP,
     make_app,
     triage,

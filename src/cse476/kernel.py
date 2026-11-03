@@ -23,11 +23,10 @@ packaging, not magic.
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from semantic_kernel import Kernel
 from semantic_kernel.functions import KernelArguments, kernel_function
-
 
 # ---------------------------------------------------------------- a real plugin
 
@@ -40,7 +39,7 @@ from semantic_kernel.functions import KernelArguments, kernel_function
 class WeatherPlugin:
     """Current weather for a few cities. A real Semantic Kernel plugin."""
 
-    _DATA = {
+    _DATA: ClassVar[dict[str, str]] = {
         "mumbai": "Mumbai: 31C, humid, light rain.",
         "delhi": "Delhi: 38C, hazy, dry.",
         "jammu": "Jammu: 29C, clear.",
@@ -70,7 +69,7 @@ class WeatherPlugin:
 class TicketPlugin:
     """A second plugin, so we can show two plugins on one kernel."""
 
-    _SLA = {"billing": 24, "technical": 4, "account": 12, "sales": 48, "abuse": 1}
+    _SLA: ClassVar[dict[str, int]] = {"billing": 24, "technical": 4, "account": 12, "sales": 48, "abuse": 1}
 
     @kernel_function(
         name="get_sla_hours",

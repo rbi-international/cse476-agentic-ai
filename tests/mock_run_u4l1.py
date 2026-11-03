@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.orchestration import (  # noqa: E402
+from cse476.orchestration import (
     ORCHESTRATION_MAP,
     REVIEWERS,
     build_review_workflow,
@@ -67,7 +67,7 @@ chk("one from each reviewer, none dropped",
 print("\n6. fan-in SYNCHRONISES: combine runs only after all workers finish")
 # prove it with a deliberately slow worker; the join must still wait for it
 order = []
-from agent_framework import WorkflowBuilder, WorkflowContext, executor  # noqa: E402
+from agent_framework import WorkflowBuilder, WorkflowContext, executor
 
 
 @executor(id="s")

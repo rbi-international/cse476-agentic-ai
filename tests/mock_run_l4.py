@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, "src")
 
-from cse476.planning import (  # noqa: E402
+from cse476.planning import (
     NoProgress,
     act_only,
     compare,

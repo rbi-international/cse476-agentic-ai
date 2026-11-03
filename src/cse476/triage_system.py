@@ -34,7 +34,6 @@ from agent_framework import (
     executor,
 )
 
-
 # ---------------------------------------------------------------- shared board keys
 
 FINDINGS = "findings"

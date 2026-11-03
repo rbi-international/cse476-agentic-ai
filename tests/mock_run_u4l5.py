@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.triage_system import (  # noqa: E402
+from cse476.triage_system import (
     SYSTEM_MAP,
     build_triage_system,
     run_triage_system,
@@ -78,7 +78,7 @@ b = run(run_triage_system("refund, urgent, hacked"))
 chk("same ticket, same disposition, every time", a == b)
 
 print("\n10. the mapping shows every primitive is present")
-chk("routing is L2", "L2" in list(SYSTEM_MAP)[0])
+chk("routing is L2", "L2" in next(iter(SYSTEM_MAP)))
 chk("fan-out is L1", "L1" in list(SYSTEM_MAP)[1])
 chk("blackboard is L4", "L4" in list(SYSTEM_MAP)[2])
 chk("the decision is the manager idea from L3",

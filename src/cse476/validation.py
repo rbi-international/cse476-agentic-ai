@@ -24,7 +24,6 @@ model's output.
 
 from __future__ import annotations
 
-
 # ---------------------------------------------------------------- 1. structural
 
 def validate_choice(answer: str, allowed: set[str]) -> str | None:

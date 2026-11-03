@@ -27,7 +27,6 @@ running on every push the entire time.
 
 from __future__ import annotations
 
-
 # ---------------------------------------------------------------- the pipeline
 
 def run_pipeline(stages: list[tuple[str, bool]]) -> dict:

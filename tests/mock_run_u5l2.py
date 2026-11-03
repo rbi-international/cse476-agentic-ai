@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.validation import (  # noqa: E402
+from cse476.validation import (
     VALIDATION_MAP,
     cross_check,
     find_unsupported_claim,

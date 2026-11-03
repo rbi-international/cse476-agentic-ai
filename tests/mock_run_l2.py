@@ -5,10 +5,15 @@ without spending an API call.
 import json
 import sys
 from types import SimpleNamespace
+
 sys.path.insert(0, "src")
-from cse476.architectures import (  # noqa: E402
-    ModelBasedAgent, goal_based, reflex, utility_based,
+from cse476.architectures import (
+    ModelBasedAgent,
+    goal_based,
+    reflex,
+    utility_based,
 )
+
 
 def _msg(content=None, calls=None):
     cs=[]

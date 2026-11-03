@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.conversation import (  # noqa: E402
+from cse476.conversation import (
     count_tokens,
     message_tokens,
     pin,

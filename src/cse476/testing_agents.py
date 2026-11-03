@@ -30,7 +30,6 @@ from __future__ import annotations
 
 from typing import Protocol
 
-
 # ---------------------------------------------------------------- 1. plain tools
 
 # WHY start here: most of an agent is not the model. It is tools and logic, and

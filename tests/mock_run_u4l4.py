@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.blackboard import (  # noqa: E402
+from cse476.blackboard import (
     BLACKBOARD_MAP,
     build_blackboard,
     message_vs_blackboard,

@@ -13,7 +13,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, "src")
 
-from cse476.tiny_agent import REGISTRY, run_agent  # noqa: E402
+from cse476.tiny_agent import REGISTRY, run_agent
 
 
 def _msg(content=None, tool_calls=None):

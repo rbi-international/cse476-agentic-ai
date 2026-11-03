@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, "src")
 
-from cse476.tools import (  # noqa: E402
+from cse476.tools import (
     ToolError,
     call_tool,
     get_weather,

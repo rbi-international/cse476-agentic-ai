@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.frameworks import (  # noqa: E402
+from cse476.frameworks import (
     CONCEPT_MAP,
     Framework,
     ImportTrap,
@@ -79,8 +79,10 @@ except Exception as e:  # noqa: BLE001
     chk(f"semantic-kernel imports ({e})", False)
 
 print("\n8. the live-call functions exist and are async")
-import inspect  # noqa: E402
-from cse476 import frameworks  # noqa: E402
+import inspect
+
+from cse476 import frameworks
+
 chk("framework_agent is a coroutine function", inspect.iscoroutinefunction(frameworks.framework_agent))
 chk("kernel_agent is a coroutine function", inspect.iscoroutinefunction(frameworks.kernel_agent))
 

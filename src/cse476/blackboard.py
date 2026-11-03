@@ -25,7 +25,6 @@ from __future__ import annotations
 
 from agent_framework import WorkflowBuilder, WorkflowContext, executor
 
-
 # ---------------------------------------------------------------- the board keys
 
 # WHY name the keys as constants: a blackboard is shared, so every agent must

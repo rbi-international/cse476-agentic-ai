@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.kernel import (  # noqa: E402
+from cse476.kernel import (
     TicketPlugin,
     WeatherPlugin,
     build_kernel,

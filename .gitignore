@@ -26,3 +26,8 @@ outputs/
 
 # Slides and PDFs: released to students one at a time, not via the repo
 slides/
+*.ppt
+*.pptx
+*.pdf
+UNIT IV/
+*.bundle

@@ -19,8 +19,9 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 # ---------------------------------------------------------------- the world
 
@@ -75,7 +76,7 @@ def get_weather_that_returns_junk(city: str) -> str:
     return "\x00\x00 <html>502 Bad Gateway</html> \x00"
 
 
-def get_weather_that_rate_limits(city: str, _state: dict = {}) -> str:
+def get_weather_that_rate_limits(city: str, _state: dict = {}) -> str:  # noqa: B006 (shared dict is the call counter)
     """
     A tool that works, then starts refusing. Fails every call after the second,
     to show why retrying blindly makes things worse.
@@ -239,9 +240,7 @@ def _looks_usable(text: Any) -> bool:
         return False
     if "\x00" in text:  # null bytes, a classic sign of a raw or broken response
         return False
-    if "502" in text and "gateway" in text.lower():
-        return False
-    return True
+    return not ("502" in text and "gateway" in text.lower())
 
 
 # ---------------------------------------------------------------- the loop

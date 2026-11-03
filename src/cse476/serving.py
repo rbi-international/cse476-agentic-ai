@@ -28,7 +28,6 @@ from __future__ import annotations
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-
 # ---------------------------------------------------------------- the contract
 
 # WHY define the shapes first: an API is a promise about what goes in and what

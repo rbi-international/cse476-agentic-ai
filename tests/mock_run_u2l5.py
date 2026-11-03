@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.context import (  # noqa: E402
+from cse476.context import (
     CheckResult,
     ContextAgent,
     Session,

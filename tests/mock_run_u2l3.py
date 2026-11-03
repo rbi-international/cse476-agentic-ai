@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.api import (  # noqa: E402
+from cse476.api import (
     ApiError,
     FakeTransport,
     HttpClient,
@@ -84,7 +84,8 @@ chk("reported the problem readably", "could not get weather" in out.lower())
 
 print("\n8. an unexpected payload shape fails readably")
 # a 200 with valid JSON but the wrong shape
-from cse476.api import Response  # noqa: E402
+from cse476.api import Response
+
 
 class WrongShape(FakeTransport):
     def get(self, url, headers, timeout):

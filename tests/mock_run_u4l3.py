@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.manager import (  # noqa: E402
+from cse476.manager import (
     MANAGER_INSTRUCTIONS,
     MANAGER_MAP,
     SPECIALIST_INSTRUCTIONS,

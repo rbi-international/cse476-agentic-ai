@@ -27,7 +27,6 @@ from typing import Any
 
 from agent_framework import WorkflowBuilder, WorkflowContext, executor
 
-
 # ---------------------------------------------------------------- 1. agent as tool
 
 MANAGER_INSTRUCTIONS = (

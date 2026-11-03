@@ -11,8 +11,9 @@ Nothing here is clever. It is a tape measure and three pairs of scissors.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 # ---------------------------------------------------------------- counting
 

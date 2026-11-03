@@ -32,7 +32,6 @@ from agent_framework import (
     executor,
 )
 
-
 # ---------------------------------------------------------------- the message
 
 # WHY a small dataclass instead of a bare string: routing needs two things to

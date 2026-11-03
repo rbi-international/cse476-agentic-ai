@@ -8,9 +8,9 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.testing_agents import (  # noqa: E402
-    FakeClient,
+from cse476.testing_agents import (
     TESTING_MAP,
+    FakeClient,
     check_refund_eligible,
     decide_route,
     summarise_findings,
@@ -70,7 +70,7 @@ chk("flaky expensive tests get ignored", "ignored" in p["why_it_matters"])
 
 # ---- debugging techniques ----
 print("\n=== DEBUGGING ===")
-from cse476.testing_agents import (  # noqa: E402
+from cse476.testing_agents import (
     DEBUGGING_MAP,
     ReplayClient,
     diagnose_route,

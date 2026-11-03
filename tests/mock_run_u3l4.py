@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, "src")
 
-from cse476.rag import (  # noqa: E402
+from cse476.rag import (
     HashingEmbedder,
     RagStore,
     build_rag_prompt,
