@@ -1,0 +1,8 @@
+# Only what the running service needs. The full requirements.txt (Jupyter, Agent
+# Framework, Semantic Kernel) is for the course environment, not for the container:
+# installing it makes the image several times bigger and the build several minutes
+# slower, for code the service never imports. Exact versions, so every build of
+# the image installs the same thing.
+fastapi==0.162.0
+uvicorn==0.54.0
+pydantic==2.14.2

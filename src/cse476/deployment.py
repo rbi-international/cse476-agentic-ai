@@ -101,18 +101,31 @@ def dockerfile_lines() -> list[str]:
     The recipe that packages the service to run anywhere.
 
     A Dockerfile is a short, ordered set of steps that builds a self-contained
-    image: start from a known Python, copy the code, install the exact deps,
-    expose the port, and state the command that starts the service. Anyone who
-    runs this image gets the exact same environment, which is what "runs anywhere"
-    really means. This is returned as data so it can be checked, but it is a real,
-    minimal Dockerfile for the L4 service.
+    image: start from a known Python, install the exact deps, copy the code, run
+    as an ordinary user, expose the port, and state the command that starts the
+    service. Anyone who runs this image gets the exact same environment, which is
+    what "runs anywhere" really means.
+
+    These lines are the Dockerfile at the repository root, line for line, and
+    tests/test_dockerfile.py fails if the two ever drift apart.
+
+    Two lines fix real bugs in the first version of this recipe:
+      ENV PYTHONPATH=/app/src  our package lives in src/, so without this the
+                               container crashed with "No module named 'cse476'"
+                               (it worked on our laptops only because we had run
+                               pip install -e . there)
+      USER agent               the service no longer runs as root, so a hijacked
+                               process cannot change the system inside the container
     """
     return [
         "FROM python:3.12-slim",
         "WORKDIR /app",
-        "COPY requirements.txt .",
-        "RUN pip install --no-cache-dir -r requirements.txt",
-        "COPY . .",
+        "COPY requirements-serve.txt .",
+        "RUN pip install --no-cache-dir -r requirements-serve.txt",
+        "COPY src ./src",
+        "ENV PYTHONPATH=/app/src",
+        "RUN useradd --create-home --uid 1000 agent",
+        "USER agent",
         "EXPOSE 8000",
         "CMD [\"uvicorn\", \"cse476.serving:make_app\", \"--factory\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]",
     ]
