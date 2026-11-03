@@ -84,7 +84,7 @@ chk("reported the problem readably", "could not get weather" in out.lower())
 
 print("\n8. an unexpected payload shape fails readably")
 # a 200 with valid JSON but the wrong shape
-from cse476.api import Response
+from cse476.api import Response  # noqa: E402
 
 
 class WrongShape(FakeTransport):

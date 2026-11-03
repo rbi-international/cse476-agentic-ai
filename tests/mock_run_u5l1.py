@@ -70,7 +70,7 @@ chk("flaky expensive tests get ignored", "ignored" in p["why_it_matters"])
 
 # ---- debugging techniques ----
 print("\n=== DEBUGGING ===")
-from cse476.testing_agents import (
+from cse476.testing_agents import (  # noqa: E402
     DEBUGGING_MAP,
     ReplayClient,
     diagnose_route,

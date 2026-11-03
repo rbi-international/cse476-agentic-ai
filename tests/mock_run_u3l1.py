@@ -79,9 +79,9 @@ except Exception as e:  # noqa: BLE001
     chk(f"semantic-kernel imports ({e})", False)
 
 print("\n8. the live-call functions exist and are async")
-import inspect
+import inspect  # noqa: E402
 
-from cse476 import frameworks
+from cse476 import frameworks  # noqa: E402
 
 chk("framework_agent is a coroutine function", inspect.iscoroutinefunction(frameworks.framework_agent))
 chk("kernel_agent is a coroutine function", inspect.iscoroutinefunction(frameworks.kernel_agent))

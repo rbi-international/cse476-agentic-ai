@@ -67,7 +67,7 @@ chk("one from each reviewer, none dropped",
 print("\n6. fan-in SYNCHRONISES: combine runs only after all workers finish")
 # prove it with a deliberately slow worker; the join must still wait for it
 order = []
-from agent_framework import WorkflowBuilder, WorkflowContext, executor
+from agent_framework import WorkflowBuilder, WorkflowContext, executor  # noqa: E402
 
 
 @executor(id="s")
