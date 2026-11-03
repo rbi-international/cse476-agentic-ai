@@ -23,10 +23,15 @@ jobs:
       # locally in the course environment, not in CI. Installing them here would
       # make CI slow and fragile for no benefit, since nothing CI checks imports
       # them. ruff is static and never imports the code it lints.
+      # WHY ruff is pinned: an unpinned linter installs whatever is newest, and a
+      # new release can add rules that fail code which passed yesterday. Every
+      # run from #12 onward went red for exactly this reason. Pin it, and upgrade
+      # on purpose, in its own commit.
+      # fastapi and httpx are here because the serving tests use TestClient.
       - name: Install what CI actually needs
         run: |
           python -m pip install --upgrade pip
-          pip install openai python-dotenv pytest ruff
+          pip install openai python-dotenv pytest ruff==0.8.6 fastapi httpx
           pip install -e . --no-deps
 
       - name: Lint
