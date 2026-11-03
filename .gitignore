@@ -31,3 +31,6 @@ slides/
 *.pdf
 UNIT IV/
 *.bundle
+
+# Personal Claude Code notes
+CLAUDE.local.md
