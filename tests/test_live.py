@@ -7,7 +7,7 @@ deploy a version where any of them is broken.
 from fastapi.testclient import TestClient
 
 from cse476.live import make_live_app
-from cse476.serving import TEAMS
+from cse476.serving import TEAMS, triage
 
 
 def client() -> TestClient:
@@ -42,10 +42,12 @@ def test_bad_input_is_rejected_before_the_agent_runs():
     assert c.get("/stats").json()["total"] == 0
 
 
-def test_every_answer_is_on_the_menu():
-    c = client()
-    for text in ["refund please", "the portal shows an error", "library timings?"]:
-        assert c.post("/ticket", json={"text": text}).json()["team"] in TEAMS
+def test_the_agent_only_answers_from_the_menu():
+    # checks triage() itself, not the endpoint: the endpoint would quietly turn an
+    # off-menu team into "general", and this test must catch the agent, not hide it
+    for text in ["refund please", "the portal shows an error", "library timings?",
+                 "Hostel room AC not working"]:
+        assert triage(text)["team"] in TEAMS
 
 
 def test_the_original_api_is_unchanged():
