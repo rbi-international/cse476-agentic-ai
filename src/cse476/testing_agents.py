@@ -79,7 +79,15 @@ def decide_route(ticket: str, client: Responder) -> str:
     exactly what you want to test, and you can, without spending a token.
     """
     raw = client.respond(f"Classify this ticket as billing, technical, or account:\n{ticket}")
-    answer = raw.strip().lower()
+    return _clean_route(raw)
+
+
+def _clean_route(raw: str) -> str:
+    """Our handling layer: normalise the model's answer, then check it is on the menu."""
+    # WHY rstrip the punctuation: real models end one-word answers with a full
+    # stop ("Billing."). Without this, a correct answer falls through to general.
+    # tests/test_routing_regression.py locks this in.
+    answer = raw.strip().lower().rstrip(".!?")
     valid = {"billing", "technical", "account"}
     return answer if answer in valid else "general"
 
@@ -184,10 +192,7 @@ def diagnose_route(ticket: str, client: Responder) -> dict[str, str]:
     """
     prompt = f"Classify this ticket as billing, technical, or account:\n{ticket}"
     raw = client.respond(prompt)
-    cleaned = raw.strip().lower()
-    valid = {"billing", "technical", "account"}
-    decided = cleaned if cleaned in valid else "general"
-    return {"sent": prompt, "model_said": raw, "we_decided": decided}
+    return {"sent": prompt, "model_said": raw, "we_decided": _clean_route(raw)}
 
 
 def safe_call(tool, *args) -> dict:

@@ -88,8 +88,10 @@ def chk2(label, cond):
 
 
 print("\n8. ReplayClient makes a flaky bug reproducible")
-# the model once answered 'Billing.' with a period, which broke the exact match
-chk2("the buggy answer reproduces the miss", decide_route("x", ReplayClient(["Billing."])) == "general")
+# the model once answered 'Billing.' with a period, which used to break the exact
+# match and send the ticket to general. The captured answer is now a fixture: it
+# routes correctly, and tests/test_routing_regression.py keeps it that way.
+chk2("the captured answer now routes correctly", decide_route("x", ReplayClient(["Billing."])) == "billing")
 chk2("it reproduces the SAME way every run",
      decide_route("x", ReplayClient(["Billing."])) == decide_route("x", ReplayClient(["Billing."])))
 
@@ -97,9 +99,9 @@ print("\n9. diagnose_route isolates which layer broke")
 d = diagnose_route("refund please", ReplayClient(["Billing."]))
 chk2("it shows what we sent", "Classify" in d["sent"])
 chk2("it shows what the model said", d["model_said"] == "Billing.")
-chk2("it shows what we decided", d["we_decided"] == "general")
-chk2("the layers together point to the logic bug (punctuation not stripped)",
-     d["model_said"].lower().startswith("billing") and d["we_decided"] == "general")
+chk2("it shows what we decided", d["we_decided"] == "billing")
+chk2("model and decision now agree, so the handling layer is fixed",
+     d["model_said"].lower().startswith("billing") and d["we_decided"] == "billing")
 
 print("\n10. safe_call turns a tool crash into data, not an exception")
 def _boom(x):
