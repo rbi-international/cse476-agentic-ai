@@ -51,6 +51,12 @@ class TriageResponse(BaseModel):
 
 # ---------------------------------------------------------------- the agent
 
+# The menu of teams. triage() must only ever answer one of these; the live service
+# (live.py) checks every answer against this tuple before counting it. Add a team
+# to triage() without adding it here, and the check catches it.
+TEAMS = ("billing", "technical", "general")
+
+
 def triage(text: str) -> dict:
     """
     The agent itself, as a plain function.

@@ -7,4 +7,4 @@ ENV PYTHONPATH=/app/src
 RUN useradd --create-home --uid 1000 agent
 USER agent
 EXPOSE 8000
-CMD ["uvicorn", "cse476.serving:make_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "cse476.live:make_live_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

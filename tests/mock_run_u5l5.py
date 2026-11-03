@@ -72,7 +72,7 @@ lines = dockerfile_lines()
 chk("it starts from a python base", lines[0].startswith("FROM python"))
 chk("it installs requirements", any("pip install" in ln for ln in lines))
 chk("it exposes a port", any("EXPOSE" in ln for ln in lines))
-chk("it starts the L4 service with uvicorn", any("uvicorn" in ln and "serving" in ln for ln in lines))
+chk("it starts the service with uvicorn", any("uvicorn" in ln and "cse476." in ln for ln in lines))
 
 print("\n8. the mapping and the course arc are present")
 chk("deployment is packaging to run anywhere", "runs anywhere" in DEPLOYMENT_MAP["deployment"])
