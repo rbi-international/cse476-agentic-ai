@@ -30,6 +30,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from cse476.observability import Metrics, Trace, log_line
+from cse476.quiz import add_quiz
 from cse476.serving import TEAMS, make_app, triage
 from cse476.validation import validate_choice
 
@@ -85,6 +86,7 @@ def make_live_app() -> FastAPI:
       GET  /dashboard  the projector view, refreshing every two seconds
       GET  /stats      the dashboard's numbers as JSON
       GET  /health and POST /triage come unchanged from make_app()
+      GET  /q/{n} and /q/{n}/results  the class questions (quiz.py)
     """
     app = make_app()
     stats = LiveStats()
@@ -129,6 +131,7 @@ def make_live_app() -> FastAPI:
     def dashboard() -> str:
         return DASHBOARD_HTML
 
+    add_quiz(app)  # the class questions: GET /q/{n} on phones, /q/{n}/results on the projector
     return app
 
 
