@@ -83,6 +83,35 @@ python tests/mock_run_u5l5.py
 # to build and run the container (needs Docker):
 docker build -t triage-service .
 docker run -p 8000:8000 triage-service
+# then open http://127.0.0.1:8000/ (form) and /dashboard
+```
+
+## The live classroom service
+
+- **Module:** `src/cse476/live.py` (wraps the unchanged `triage()` from `serving.py`)
+- **Tests:** `tests/test_live.py`, `tests/test_dockerfile.py`, `tests/test_routing_regression.py`
+- **Deploy:** `.github/workflows/ci.yml` (job `deploy`) and `deploy/push_space.py`
+
+The whole unit in one running app: a phone form at `/`, a projector dashboard at
+`/dashboard`, every ticket validated against `serving.TEAMS`, traced and logged
+as one JSON line. Every green push to `main` deploys it to the Hugging Face Space
+`rbi-international/cse476-triage-live`, once the `HF_TOKEN` secret is set.
+
+```bash
+pytest -q
+uvicorn cse476.live:make_live_app --factory --reload
+# phone form: http://127.0.0.1:8000/   dashboard: http://127.0.0.1:8000/dashboard
+```
+
+The two-step change used in class (route hostel tickets, then add hostel to the
+menu) is in `demos/live_change/`. Apply step 1 alone and `pytest` fails, so CI
+blocks the deploy; apply step 2 and it ships:
+
+```bash
+git apply demos/live_change/step1_route_hostel_tickets.patch
+pytest -q            # fails: hostel is not on the menu
+git apply demos/live_change/step2_add_hostel_to_the_menu.patch
+pytest -q            # passes
 ```
 
 ## Run every Unit 5 test at once

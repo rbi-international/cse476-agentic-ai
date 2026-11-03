@@ -1,0 +1,13 @@
+diff --git a/src/cse476/serving.py b/src/cse476/serving.py
+index 3975768..34c508f 100644
+--- a/src/cse476/serving.py
++++ b/src/cse476/serving.py
+@@ -73,6 +73,8 @@ def triage(text: str) -> dict:
+         team = "billing"
+     elif any(w in low for w in ("error", "bug", "crash")):
+         team = "technical"
++    elif any(w in low for w in ("hostel", "room", "mess")):
++        team = "hostel"
+     else:
+         team = "general"
+     escalate = any(w in low for w in ("hack", "breach", "urgent"))
