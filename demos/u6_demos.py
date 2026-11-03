@@ -92,16 +92,16 @@ print("read_credential calls:", log.count("read_credential"), "| budget 20 tripp
 
 # ------------------------------------------------------------------ authentication, authorization, audit
 print("== A1 salted hashing")
-s1, h1 = auth.hash_password("Lpu@Hostel2026")
-s2, h2 = auth.hash_password("Lpu@Hostel2026")
+s1, h1 = auth.hash_password("Demo@Hostel2026")  # ggignore: made-up sample
+s2, h2 = auth.hash_password("Demo@Hostel2026")  # ggignore: made-up sample
 print("same password, salt 1:", s1, "hash:", h1[:16] + "...")
 print("same password, salt 2:", s2, "hash:", h2[:16] + "...")
 print("hashes equal ->", h1 == h2)
-print("verify right ->", auth.verify_password("Lpu@Hostel2026", s1, h1))
-print("verify wrong ->", auth.verify_password("lpu@hostel2026", s1, h1))
+print("verify right ->", auth.verify_password("Demo@Hostel2026", s1, h1))  # ggignore
+print("verify wrong ->", auth.verify_password("demo@hostel2026", s1, h1))  # ggignore
 
 print("== A2 weak passwords")
-for p in ["123456", "Password", "admin", "lpu12345", "rohit@2026", "Lpu@Hostel2026"]:
+for p in ["123456", "Password", "admin", "lpu12345", "student@2026", "Demo@Hostel2026"]:  # ggignore: made-up samples
     print(f"is_weak_password({p!r}) ->", auth.is_weak_password(p))
 
 print("== A3 authorization, the IDOR check")
