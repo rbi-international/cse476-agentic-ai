@@ -90,12 +90,13 @@ docker run -p 8000:8000 triage-service
 
 - **Module:** `src/cse476/live.py` (wraps the unchanged `triage()` from `serving.py`)
 - **Tests:** `tests/test_live.py`, `tests/test_dockerfile.py`, `tests/test_routing_regression.py`
-- **Deploy:** `.github/workflows/ci.yml` (job `deploy`) and `deploy/push_space.py`
+- **Deploy:** manual, on Azure Container Apps (see "Deploy on Azure (class demo)")
 
 The whole unit in one running app: a phone form at `/`, a projector dashboard at
 `/dashboard`, every ticket validated against `serving.TEAMS`, traced and logged
-as one JSON line. Every green push to `main` deploys it to the Hugging Face Space
-`rbi-international/cse476-triage-live`, once the `HF_TOKEN` secret is set.
+as one JSON line. CI checks every push (lint + tests); the deploy itself is a
+one-time `az containerapp up --source .` from the laptop, and Azure builds the
+`Dockerfile` in the cloud.
 
 ```bash
 pytest -q

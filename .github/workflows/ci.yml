@@ -49,25 +49,3 @@ jobs:
             echo "::error::.env is tracked by git. Remove it and rotate every key in it."
             exit 1
           fi
-
-  # WHY a separate job that needs: check: the golden rule of CI/CD. Deploy runs
-  # only after every check above passed, and only for a push to main, never for a
-  # pull request. A red check means the live service keeps the last good version.
-  deploy:
-    needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install the uploader
-        run: pip install huggingface_hub==2.4.0
-
-      - name: Ship to the Hugging Face Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python deploy/push_space.py
