@@ -117,3 +117,29 @@ def test_the_page_script_keeps_its_newline_escapes():
     from crew.web import PAGE
     assert "t.split('\\n')" in PAGE
     assert "split('\n')" not in PAGE
+
+
+class MiscountingModel:
+    """Plays a model that finds the eval again, with the wrong line number, from two agents."""
+
+    model = "scripted"
+
+    def ask(self, system, user, max_tokens=900):
+        if "judge" in system:
+            text = json.dumps({"keep": list(range(20)), "summary": "Fix the eval."})
+        elif "quality" in system or "documentation" in system:
+            text = json.dumps({"findings": [
+                {"path": "helpdesk/triage.py", "line": 21, "code": "table = eval(weights)", "severity": "high",
+                 "title": "Use of eval on untrusted input", "detail": "eval runs any text."},
+                {"path": "helpdesk/triage.py", "line": 22, "code": "not in this pull request", "severity": "low",
+                 "title": "Invented problem", "detail": "No such code."}]})
+        else:
+            text = '{"findings": []}'
+        return Reply(text, 5.0, 42)
+
+
+def test_model_line_numbers_snap_to_the_quoted_code_and_repeats_merge():
+    r = review("03_prompt_injection", MiscountingModel())
+    on_eval_line = [f for f in r["findings"] if f["line"] == 25]
+    assert len(on_eval_line) == 1 and on_eval_line[0]["source"] == "tool"
+    assert not any(f["line"] in (21, 22) for f in r["findings"])

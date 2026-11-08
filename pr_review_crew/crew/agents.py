@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from crew import tools
-from crew.diff import FileChange, is_added
+from crew.diff import FileChange
 from crew.llm import LLM, parse_json
 from crew.trace import Trace
 
@@ -44,21 +44,48 @@ def _ask(ctx: Context, agent: str, system: str, user: str, max_tokens: int = 900
     return parse_json(r.text)
 
 
+FOCUS = {
+    "security": "Only report security problems: secrets, unsafe calls, injection, unsafe input handling.",
+    "quality": "Only report correctness, readability and missing-test problems. Leave security to the security agent.",
+    "docs": "Only report documentation problems: missing or outdated docstrings and comments. "
+            "Leave security and correctness to the other agents.",
+}
+
+
+def numbered(files: list[FileChange]) -> str:
+    """The added lines with their real line numbers, so the model never has to count."""
+    return "\n".join(f"{f.path}:{n}: {t}" for f in files for n, t in sorted(f.added.items()))
+
+
+def _locate(ctx: Context, path: str, line: int, code: str) -> int:
+    """Trust the quoted code, not the model's line number: snap to the added line that holds it."""
+    added = next((f.added for f in ctx.files if f.path == path), {})
+    code = code.strip()
+    if code and line in added and code in added[line]:
+        return line
+    hits = [n for n, t in added.items() if code and code in t]
+    if hits:
+        return min(hits, key=lambda n: abs(n - line))
+    return 0  # no evidence on any added line: keep it only as a general note
+
+
 def _model_findings(ctx: Context, agent: str, role: str, tool_out: list[dict]) -> list[dict]:
-    system = (f"You are the {role} on a code review team. " + GUARD +
-              'Reply with JSON only: {"findings": [{"path": str, "line": int, "severity": "high|medium|low", '
-              '"title": str, "detail": str}]}. At most 3 findings, each one a real problem on an added line. '
+    system = (f"You are the {role} on a code review team. " + GUARD + FOCUS.get(agent, "") + " "
+              'Reply with JSON only: {"findings": [{"path": str, "line": int, "code": "the exact code you mean, '
+              'copied from one added line", "severity": "high|medium|low", "title": str, "detail": str}]}. '
+              "Take line numbers from <added_lines>. At most 3 findings, each one a real problem on an added line. "
               'Do not repeat what the tools already found. If there is nothing more, reply {"findings": []}.')
-    user = ("<tool_findings>\n" + json.dumps(tool_out, indent=1) + "\n</tool_findings>\n<pull_request_diff>\n"
+    user = ("<tool_findings>\n" + json.dumps(tool_out, indent=1) + "\n</tool_findings>\n<added_lines>\n"
+            + numbered(ctx.files)[:8000] + "\n</added_lines>\n<pull_request_diff>\n"
             + ctx.diff[:12000] + "\n</pull_request_diff>")
     raw = _ask(ctx, agent, system, user).get("findings", [])
     out = []
     for f in raw if isinstance(raw, list) else []:
         if not isinstance(f, dict):
             continue
-        path, line = str(f.get("path", "")), int(f.get("line") or 0) if str(f.get("line", "0")).isdigit() else 0
-        if line and not is_added(ctx.files, path, line):
-            line = 0  # the model pointed at a line that is not part of the change: keep it as a general note
+        path = str(f.get("path", ""))
+        line = int(f.get("line")) if str(f.get("line", "")).isdigit() else 0
+        line = _locate(ctx, path, line, str(f.get("code", "")))
         sev = f.get("severity") if f.get("severity") in SEVERITIES else "low"
         out.append(tools.finding(agent, sev, str(f.get("title", ""))[:120], str(f.get("detail", ""))[:600],
                                  path if line else "", line, source="model"))
@@ -134,12 +161,14 @@ SPECIALISTS = {"tests": tests_agent, "security": security_agent, "quality": qual
 
 def judge(ctx: Context, findings: list[dict]) -> dict:
     ctx.trace.emit("judge", "start", f"weighing {len(findings)} finding(s) from the team")
-    seen, unique = set(), []
-    for f in findings:  # the same problem reported twice becomes one
-        key = (f["path"], f["line"], f["category"])
-        if key in seen and f["line"]:
+    seen, taken, unique = set(), set(), []
+    # tools first: a model finding on a line a tool already flagged is the same problem said twice
+    for f in sorted(findings, key=lambda f: f["source"] != "tool"):
+        key, spot = (f["path"], f["line"], f["category"]), (f["path"], f["line"])
+        if f["line"] and (key in seen or (f["source"] == "model" and spot in taken)):
             continue
         seen.add(key)
+        taken.add(spot)
         unique.append(f)
     for i, f in enumerate(unique):
         f["id"] = i
