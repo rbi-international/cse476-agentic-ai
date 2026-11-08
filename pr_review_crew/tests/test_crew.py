@@ -80,9 +80,9 @@ class ScriptedModel:
         return Reply(text, 5.0, 42)
 
 
-def test_the_judge_cannot_drop_a_high_severity_tool_finding():
+def test_the_judge_cannot_drop_a_fact_a_tool_found():
     r = review("03_prompt_injection", ScriptedModel())
-    assert any(f["category"] == "injection" for f in r["findings"])
+    assert {"injection", "dangerous", "tests-missing"} <= {f["category"] for f in r["findings"]}
     assert r["verdict"] == "changes requested"
     assert r["totals"]["llm_calls"] > 0
 
@@ -143,3 +143,26 @@ def test_model_line_numbers_snap_to_the_quoted_code_and_repeats_merge():
     on_eval_line = [f for f in r["findings"] if f["line"] == 25]
     assert len(on_eval_line) == 1 and on_eval_line[0]["source"] == "tool"
     assert not any(f["line"] in (21, 22) for f in r["findings"])
+
+
+class SecondOpinionModel:
+    """The docs agent adds a different problem on a line the quality tool already flagged."""
+
+    model = "scripted"
+
+    def ask(self, system, user, max_tokens=900):
+        if "judge" in system:
+            text = json.dumps({"keep": list(range(20)), "summary": "ok"})
+        elif "documentation" in system:
+            text = json.dumps({"findings": [{"path": "helpdesk/triage.py", "line": 23, "severity": "medium",
+                                             "code": "def priority(text: str, weights: str) -> int:",
+                                             "title": "Missing docstring", "detail": "Say what weights holds."}]})
+        else:
+            text = '{"findings": []}'
+        return Reply(text, 5.0, 42)
+
+
+def test_a_different_problem_on_the_same_line_is_kept():
+    r = review("03_prompt_injection", SecondOpinionModel())
+    on_23 = {f["title"] for f in r["findings"] if f["line"] == 23}
+    assert "Missing docstring" in on_23 and any("no test" in t for t in on_23)

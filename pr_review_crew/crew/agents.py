@@ -159,38 +159,52 @@ SPECIALISTS = {"tests": tests_agent, "security": security_agent, "quality": qual
 
 # ---------------------------------------------------------------- judge
 
+STOP = {"with", "from", "that", "this", "into", "line", "code", "call", "calls", "function", "uses", "using",
+        "added", "issue", "problem", "potential", "possible"}
+
+
+def _words(f: dict) -> set[str]:
+    return set(re.findall(r"[a-z]{4,}", f["title"].lower())) - STOP
+
+
+def _same_problem(a: dict, b: dict) -> bool:
+    """Same file and line, and either the same agent or the same subject (a shared word like 'eval')."""
+    return (a["path"], a["line"]) == (b["path"], b["line"]) and (a["agent"] == b["agent"] or bool(_words(a) & _words(b)))
+
+
 def judge(ctx: Context, findings: list[dict]) -> dict:
     ctx.trace.emit("judge", "start", f"weighing {len(findings)} finding(s) from the team")
-    seen, taken, unique = set(), set(), []
-    # tools first: a model finding on a line a tool already flagged is the same problem said twice
+    unique: list[dict] = []
+    # tools first, so when a model repeats a tool's finding, the tool's version (the one with proof) survives
     for f in sorted(findings, key=lambda f: f["source"] != "tool"):
-        key, spot = (f["path"], f["line"], f["category"]), (f["path"], f["line"])
-        if f["line"] and (key in seen or (f["source"] == "model" and spot in taken)):
+        if f["line"] and any(_same_problem(f, u) for u in unique):
             continue
-        seen.add(key)
-        taken.add(spot)
         unique.append(f)
+    repeats = len(findings) - len(unique)
     for i, f in enumerate(unique):
         f["id"] = i
-    keep = {f["id"] for f in unique}
-    summary = ""
+    model_ids = {f["id"] for f in unique if f["source"] == "model"}
+    keep_model, summary = set(model_ids), ""
     reply = _ask(ctx, "judge", "You are the judge of a code review team. You see findings, not the pull request. "
-                 "Drop findings that are vague, duplicated or not supported by their detail. "
-                 'Reply with JSON only: {"keep": [ids], "summary": "two sentences for the author"}',
+                 'Findings with "source": "tool" are verified facts and are always kept. Among the "source": "model" '
+                 "findings, keep only those that are specific and supported by their detail. "
+                 'Reply with JSON only: {"keep": [ids of model findings to keep], '
+                 '"summary": "two sentences for the author, covering every kept finding"}',
                  json.dumps([{k: f[k] for k in ("id", "agent", "severity", "title", "detail", "source")} for f in unique], indent=1), 500)
     if isinstance(reply.get("keep"), list):
-        keep = {i for i in reply["keep"] if isinstance(i, int)}
+        keep_model = {i for i in reply["keep"] if isinstance(i, int)} & model_ids
         summary = str(reply.get("summary", ""))[:600]
-    # rule the model cannot override: facts found by tools at high severity are always kept
-    keep |= {f["id"] for f in unique if f["source"] == "tool" and f["severity"] == "high"}
-    kept = sorted((f for f in unique if f["id"] in keep), key=lambda f: SEVERITIES.index(f["severity"]))
-    dropped = len(unique) - len(kept)
+    # the rule the model cannot override: it may filter opinions, never facts a tool found
+    kept = sorted((f for f in unique if f["source"] == "tool" or f["id"] in keep_model),
+                  key=lambda f: SEVERITIES.index(f["severity"]))
+    dropped = repeats + len(unique) - len(kept)
     verdict = "changes requested" if any(f["severity"] == "high" for f in kept) else (
         "looks good, with suggestions" if kept else "looks good")
     if not summary:
         summary = (f"{len(kept)} finding(s); " + ("fix the high-severity ones before merging." if verdict ==
                    "changes requested" else "nothing blocks this change."))
-    ctx.trace.emit("judge", "verdict", f"{verdict.upper()}: kept {len(kept)}, dropped {dropped}", verdict=verdict)
+    ctx.trace.emit("judge", "verdict", f"{verdict.upper()}: kept {len(kept)}, merged {repeats} repeat(s), "
+                   f"dropped {len(unique) - len(kept)} weak", verdict=verdict)
     return {"verdict": verdict, "summary": summary, "findings": kept, "dropped": dropped}
 
 

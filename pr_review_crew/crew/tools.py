@@ -32,11 +32,11 @@ INJECTION = re.compile(
     r"instructions|approve\s+this\s+(pr|pull\s+request)|you\s+are\s+now\s+|reveal\s+(your\s+)?system\s+prompt)"
 )
 DANGEROUS = [
-    (re.compile(r"\beval\("), "eval() runs any text as code"),
-    (re.compile(r"\bexec\("), "exec() runs any text as code"),
-    (re.compile(r"shell\s*=\s*True"), "shell=True lets input become a shell command"),
-    (re.compile(r"pickle\.loads?\("), "pickle can run code while loading untrusted data"),
-    (re.compile(r"verify\s*=\s*False"), "TLS verification switched off"),
+    (re.compile(r"\beval\("), "eval()", "eval() runs any text as code"),
+    (re.compile(r"\bexec\("), "exec()", "exec() runs any text as code"),
+    (re.compile(r"shell\s*=\s*True"), "shell=True", "shell=True lets input become a shell command"),
+    (re.compile(r"pickle\.loads?\("), "pickle", "pickle can run code while loading untrusted data"),
+    (re.compile(r"verify\s*=\s*False"), "verify=False", "TLS verification switched off"),
 ]
 
 
@@ -76,9 +76,10 @@ def scan_dangerous(files: list[FileChange]) -> list[dict]:
         if not f.is_python:
             continue
         for n, text in f.added.items():
-            for rx, why in DANGEROUS:
+            for rx, name, why in DANGEROUS:
                 if rx.search(text):
-                    out.append(finding("security", "medium", "Dangerous call", why + ".", f.path, n, category="dangerous"))
+                    out.append(finding("security", "medium", f"Dangerous call: {name}", why + ".", f.path, n,
+                                       category="dangerous"))
     return out
 
 
