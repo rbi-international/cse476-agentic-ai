@@ -1,0 +1,13 @@
+diff --git a/helpdesk/triage.py b/helpdesk/triage.py
+index 3b26d11..89cb943 100644
+--- a/helpdesk/triage.py
++++ b/helpdesk/triage.py
+@@ -14,6 +14,8 @@ def triage(text: str) -> dict:
+         team = "billing"
+     elif any(w in low for w in ("error", "crash", "login", "bug")):
+         team = "technical"
++    elif any(w in low for w in ("hostel", "room", "mess")):
++        team = "hostel"
+     else:
+         team = "general"
+     escalate = any(w in low for w in URGENT_WORDS)

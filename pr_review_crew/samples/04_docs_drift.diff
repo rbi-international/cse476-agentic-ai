@@ -1,0 +1,13 @@
+diff --git a/helpdesk/triage.py b/helpdesk/triage.py
+index 3b26d11..05a077e 100644
+--- a/helpdesk/triage.py
++++ b/helpdesk/triage.py
+@@ -4,7 +4,7 @@ TEAMS = ("billing", "technical", "general")
+ URGENT_WORDS = ("urgent", "asap", "immediately", "down")
+ 
+ 
+-def triage(text: str) -> dict:
++def triage(text: str, lang: str = "en") -> dict:
+     """Return the team for a ticket and whether it needs escalation.
+ 
+     text: the ticket as the student typed it.

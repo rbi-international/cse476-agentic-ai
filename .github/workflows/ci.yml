@@ -43,6 +43,13 @@ jobs:
       - name: Test the lane abstraction
         run: pytest -q
 
+      # The PR Review Crew has its own tests and config in its folder.
+      - name: Lint and test the PR Review Crew
+        working-directory: pr_review_crew
+        run: |
+          ruff check .
+          python -m pytest -q
+
       - name: Refuse to merge a committed secret
         run: |
           if git ls-files | grep -qx '.env'; then

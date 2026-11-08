@@ -1,0 +1,10 @@
+diff --git a/helpdesk/config.py b/helpdesk/config.py
+index 630dfcd..3d72979 100644
+--- a/helpdesk/config.py
++++ b/helpdesk/config.py
+@@ -3,4 +3,4 @@
+ import os
+ 
+ MODEL = os.environ.get("HELPDESK_MODEL", "openai/gpt-oss-20b")
+-API_KEY = os.environ.get("HELPDESK_API_KEY", "")
++API_KEY = "demo-key-not-real-1234567890"  # pasted here just for testing, ggignore

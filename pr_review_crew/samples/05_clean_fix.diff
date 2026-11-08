@@ -1,0 +1,28 @@
+diff --git a/helpdesk/triage.py b/helpdesk/triage.py
+index 3b26d11..dc9e9e7 100644
+--- a/helpdesk/triage.py
++++ b/helpdesk/triage.py
+@@ -10,7 +10,7 @@ def triage(text: str) -> dict:
+     text: the ticket as the student typed it.
+     """
+     low = text.lower()
+-    if any(w in low for w in ("refund", "charged", "invoice", "fee")):
++    if any(w in low for w in ("refund", "charged", "invoice", "fee", "bill")):
+         team = "billing"
+     elif any(w in low for w in ("error", "crash", "login", "bug")):
+         team = "technical"
+diff --git a/tests/test_triage.py b/tests/test_triage.py
+index 77b795b..c14ef02 100644
+--- a/tests/test_triage.py
++++ b/tests/test_triage.py
+@@ -5,6 +5,10 @@ def test_refund_goes_to_billing():
+     assert triage("Please refund my hostel fee")["team"] == "billing"
+ 
+ 
++def test_bill_goes_to_billing():
++    assert triage("Wrong bill for the bus pass")["team"] == "billing"
++
++
+ def test_crash_goes_to_technical():
+     assert triage("UMS app crash on login")["team"] == "technical"
+ 
