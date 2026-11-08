@@ -175,9 +175,10 @@ def _same_problem(a: dict, b: dict) -> bool:
 def judge(ctx: Context, findings: list[dict]) -> dict:
     ctx.trace.emit("judge", "start", f"weighing {len(findings)} finding(s) from the team")
     unique: list[dict] = []
-    # tools first, so when a model repeats a tool's finding, the tool's version (the one with proof) survives
+    # tools first, so when a model repeats a tool's finding, the tool's version (the one with proof) survives.
+    # Only model findings are ever merged away: two tool facts on one line are two facts.
     for f in sorted(findings, key=lambda f: f["source"] != "tool"):
-        if f["line"] and any(_same_problem(f, u) for u in unique):
+        if f["line"] and f["source"] == "model" and any(_same_problem(f, u) for u in unique):
             continue
         unique.append(f)
     repeats = len(findings) - len(unique)

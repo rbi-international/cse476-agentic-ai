@@ -166,3 +166,12 @@ def test_a_different_problem_on_the_same_line_is_kept():
     r = review("03_prompt_injection", SecondOpinionModel())
     on_23 = {f["title"] for f in r["findings"] if f["line"] == 23}
     assert "Missing docstring" in on_23 and any("no test" in t for t in on_23)
+
+
+def test_two_tool_facts_on_one_line_both_survive():
+    from crew.agents import Context, judge
+    files = parse("+++ b/app.py\n@@ -0,0 +1 @@\n+eval(a); exec(b)\n")
+    facts = tools.scan_dangerous(files)
+    assert len(facts) == 2
+    r = judge(Context(files, "", DEMO, None, Trace(quiet=True)), facts)
+    assert {f["title"] for f in r["findings"]} == {"Dangerous call: eval()", "Dangerous call: exec()"}
