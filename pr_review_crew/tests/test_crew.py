@@ -110,3 +110,10 @@ def test_the_web_page_runs_a_review_end_to_end(client):
     with client.stream("GET", f"/api/events/{run}") as s:
         body = "".join(s.iter_text())
     assert '"agent": "judge"' in body and "event: review" in body
+
+
+def test_the_page_script_keeps_its_newline_escapes():
+    """A real newline inside a JavaScript string is a syntax error: the page loads but nothing runs."""
+    from crew.web import PAGE
+    assert "t.split('\\n')" in PAGE
+    assert "split('\n')" not in PAGE

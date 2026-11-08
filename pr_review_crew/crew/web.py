@@ -115,7 +115,7 @@ def page() -> str:
     return PAGE
 
 
-PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>PR Review Crew</title>
 <style>
 :root{--bg:#F6F1E7;--ink:#141414;--sub:#5B5B5B;--line:#D8D1C2;--card:#fff;--blue:#2F5D8C;--green:#2E7D4F;--amber:#B7791F;--rose:#B23A48;--lav:#6B5B95}
@@ -168,8 +168,8 @@ fetch('/api/samples').then(r=>r.json()).then(list=>{
   document.querySelectorAll('.sample').forEach(el=>el.onclick=()=>{
     document.querySelectorAll('.sample').forEach(x=>x.classList.remove('on')); el.classList.add('on'); pick=el.dataset.id; $('run').disabled=false;
     const d=list.find(s=>s.id===pick).diff;
-    $('diff').innerHTML=d.split('\\n').map(l=>{const e=l.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      return l.startsWith('+')&&!l.startsWith('+++')?`<span class="a">${e}</span>`:l.startsWith('-')&&!l.startsWith('---')?`<span class="r">${e}</span>`:e}).join('\\n');
+    $('diff').innerHTML=d.split('\n').map(l=>{const e=l.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      return l.startsWith('+')&&!l.startsWith('+++')?`<span class="a">${e}</span>`:l.startsWith('-')&&!l.startsWith('---')?`<span class="r">${e}</span>`:e}).join('\n');
   });
 });
 function md(t){const esc=x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;');let h='',inCode=false,rows=[];
