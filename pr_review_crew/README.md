@@ -22,9 +22,15 @@ text inside a pull request cannot talk the crew out of it.
 
 ## 1. Run it on your laptop or in Codespaces
 
+Give the crew its **own environment**. It pins newer `openai` and `pydantic` than the course's
+Agent Framework and Semantic Kernel accept, so installing it into the course environment breaks
+those. One service, one environment: the same idea a Docker container enforces.
+
 ```bash
+conda create -n prcrew python=3.12 -y     # or: python -m venv .venv-crew
+conda activate prcrew
 cd pr_review_crew
-pip install -r requirements.txt
+pip install -r requirements.txt ruff==0.8.6
 python -m crew.cli --sample 02_hardcoded_key     # one review, printed
 uvicorn crew.web:app --port 8080                 # the live web page: http://127.0.0.1:8080
 python -m pytest -q                              # the crew's own tests
