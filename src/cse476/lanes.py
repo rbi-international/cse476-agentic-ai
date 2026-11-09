@@ -243,3 +243,4 @@ def describe() -> str:
     lane = _lane()
     tag = "free" if lane.free else "billed"
     return f"Lane: {lane.name} ({lane.key}, {tag})  |  Model: {get_model()}"
+API_TOKEN = "class-demo-token-abcdef123456"
