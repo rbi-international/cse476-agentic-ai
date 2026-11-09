@@ -49,12 +49,13 @@ def markdown(result: dict) -> str:
     out = [f"## PR Review Crew: {result['verdict']}", "", result["summary"], "",
            f"Team sent by the lead: {', '.join(result['team'])}. "
            f"{t['llm_calls']} model call(s), {t['tokens']} tokens, {t['seconds']} s. "
-           f"The judge dropped {result['dropped']} weak or duplicate finding(s).", ""]
+           f"The judge dropped {result['dropped']} weak or duplicate finding(s). "
+           "Only a tool's finding can be HIGH; a model's finding is an opinion and stops at MEDIUM.", ""]
     if result["findings"]:
         out += ["| Severity | Found by | Finding | Where |", "|---|---|---|---|"]
         for f in result["findings"]:
             where = f"`{f['path']}:{f['line']}`" if f["line"] else "whole change"
-            out.append(f"| {SEV_ICON[f['severity']]} | {f['agent']} | {f['title']} | {where} |")
+            out.append(f"| {SEV_ICON[f['severity']]} | {f['agent']} ({f['source']}) | {f['title']} | {where} |")
         general = [f for f in result["findings"] if not f["line"]]
         for f in general:
             out += ["", f"**{f['title']}**", "", f["detail"]]
@@ -72,7 +73,8 @@ def inline_comments(result: dict) -> list[dict]:
     for f in result["findings"]:
         if not f["line"]:
             continue
-        body = f"**{SEV_ICON[f['severity']]}: {f['title']}** ({f['agent']} agent)\n\n{f['detail']}"
+        kind = "a fact a tool found" if f["source"] == "tool" else "the model's opinion"
+        body = f"**{SEV_ICON[f['severity']]}: {f['title']}** ({f['agent']} agent, {kind})\n\n{f['detail']}"
         fx = fixes.get((f["path"], f["line"]))
         if fx:
             body += f"\n\nSuggested fix (tests: {fx['tests']}):\n```suggestion\n{fx['suggestion']}\n```"

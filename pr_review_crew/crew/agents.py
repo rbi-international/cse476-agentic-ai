@@ -57,6 +57,17 @@ def numbered(files: list[FileChange]) -> str:
     return "\n".join(f"{f.path}:{n}: {t}" for f in files for n, t in sorted(f.added.items()))
 
 
+def imports(ctx: Context) -> str:
+    """The import lines of each changed file as it is after the change: the diff alone hides them."""
+    out = []
+    for f in ctx.files:
+        p = Path(ctx.repo) / f.path
+        if f.is_python and p.is_file():
+            lines = [t for t in p.read_text(errors="replace").splitlines() if t.startswith(("import ", "from "))]
+            out.append(f"{f.path}: " + ("; ".join(lines) if lines else "(no imports)"))
+    return "\n".join(out)
+
+
 def _locate(ctx: Context, path: str, line: int, code: str) -> int:
     """Trust the quoted code, not the model's line number: snap to the added line that holds it."""
     added = next((f.added for f in ctx.files if f.path == path), {})
@@ -73,9 +84,10 @@ def _model_findings(ctx: Context, agent: str, role: str, tool_out: list[dict]) -
     system = (f"You are the {role} on a code review team. " + GUARD + FOCUS.get(agent, "") + " "
               'Reply with JSON only: {"findings": [{"path": str, "line": int, "code": "the exact code you mean, '
               'copied from one added line", "severity": "high|medium|low", "title": str, "detail": str}]}. '
-              "Take line numbers from <added_lines>. At most 3 findings, each one a real problem on an added line. "
+              "Take line numbers from <added_lines>. <file_imports> lists what each file already imports. At most 3 findings, each one a real problem on an added line. "
               'Do not repeat what the tools already found. If there is nothing more, reply {"findings": []}.')
-    user = ("<tool_findings>\n" + json.dumps(tool_out, indent=1) + "\n</tool_findings>\n<added_lines>\n"
+    user = ("<tool_findings>\n" + json.dumps(tool_out, indent=1) + "\n</tool_findings>\n<file_imports>\n"
+            + imports(ctx) + "\n</file_imports>\n<added_lines>\n"
             + numbered(ctx.files)[:8000] + "\n</added_lines>\n<pull_request_diff>\n"
             + ctx.diff[:12000] + "\n</pull_request_diff>")
     raw = _ask(ctx, agent, system, user).get("findings", [])
@@ -87,6 +99,7 @@ def _model_findings(ctx: Context, agent: str, role: str, tool_out: list[dict]) -
         line = int(f.get("line")) if str(f.get("line", "")).isdigit() else 0
         line = _locate(ctx, path, line, str(f.get("code", "")))
         sev = f.get("severity") if f.get("severity") in SEVERITIES else "low"
+        sev = "medium" if sev == "high" else sev  # an opinion can warn, never block: only a tool's fact is high
         out.append(tools.finding(agent, sev, str(f.get("title", ""))[:120], str(f.get("detail", ""))[:600],
                                  path if line else "", line, source="model"))
     return out

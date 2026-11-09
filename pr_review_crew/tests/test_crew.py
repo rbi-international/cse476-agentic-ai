@@ -175,3 +175,32 @@ def test_two_tool_facts_on_one_line_both_survive():
     assert len(facts) == 2
     r = judge(Context(files, "", DEMO, None, Trace(quiet=True)), facts)
     assert {f["title"] for f in r["findings"]} == {"Dangerous call: eval()", "Dangerous call: exec()"}
+
+
+class AlarmistModel:
+    """Plays a model that invents a HIGH problem in a clean pull request."""
+
+    model = "scripted"
+
+    def ask(self, system, user, max_tokens=900):
+        if "judge" in system:
+            text = json.dumps({"keep": list(range(20)), "summary": "ok"})
+        elif "quality" in system:
+            text = json.dumps({"findings": [{"path": "", "line": 0, "code": "", "severity": "high",
+                                             "title": "Missing import for os", "detail": "Will raise NameError."}]})
+        else:
+            text = '{"findings": []}'
+        return Reply(text, 5.0, 42)
+
+
+def test_a_model_opinion_can_warn_but_never_block():
+    r = review("05_clean_fix", AlarmistModel())
+    assert r["verdict"] == "looks good, with suggestions"
+    assert [f["severity"] for f in r["findings"]] == ["medium"]
+    assert "quality (model)" in crew.markdown(r)
+
+
+def test_the_model_is_shown_the_imports_of_changed_files():
+    from crew.agents import Context, imports
+    files = parse(sample("02_hardcoded_key"))
+    assert "import os" in imports(Context(files, "", DEMO, None, Trace(quiet=True)))
