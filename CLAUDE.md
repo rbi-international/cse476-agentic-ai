@@ -11,7 +11,8 @@
 
 ## PR Review Crew (pr_review_crew/)
 - Multi-agent pull request reviewer: lead, tests/security/quality/docs in parallel, judge, fixer.
-- Own config and tests: cd pr_review_crew && ruff check . && python -m pytest -q (13 tests, no key needed).
+- Own config and tests: cd pr_review_crew && ruff check . && python -m pytest -q (19 tests, no key needed).
+- Rule: only a tool's finding can be HIGH; model findings are capped at MEDIUM and can never block.
 - Runs on every PR via .github/workflows/pr-review.yml. Keep the trigger pull_request, never
   pull_request_target (the crew runs the PR's tests; pull_request_target would expose secrets).
 - High-severity tool findings must stay un-droppable by the model (test_the_judge_cannot_drop...).
