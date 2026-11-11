@@ -212,7 +212,7 @@ def test_a_windows_checkout_with_crlf_line_endings_still_works(tmp_path):
     win = tmp_path / "demo"
     shutil.copytree(DEMO, win)
     for f in win.rglob("*.py"):
-        f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
+        f.write_bytes(f.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))  # CRLF even if already CRLF
     diff = sample("03_prompt_injection")  # read_text() hands the diff over with LF, the files stay CRLF
     r = crew.run(diff, win, None, Trace(quiet=True), apply_diff=True)
     assert r["verdict"] == "changes requested"
@@ -232,3 +232,9 @@ def test_every_log_line_has_a_message_for_cloud_logging(capsys):
     Trace().emit("judge", "verdict", "CHANGES REQUESTED")
     line = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert line["message"] == "judge verdict: CHANGES REQUESTED" and line["severity"] == "INFO"
+
+
+def test_a_crlf_diff_from_a_windows_pipe_still_applies():
+    """On Windows, text pipes and editors can hand the crew a diff with CRLF line endings."""
+    r = crew.run(sample("02_hardcoded_key").replace("\n", "\r\n"), DEMO, None, Trace(quiet=True), apply_diff=True)
+    assert r["findings"][0]["category"] == "secret"

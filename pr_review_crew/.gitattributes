@@ -1,0 +1,2 @@
+# Keep LF in every checkout (Windows too), so diffs apply the same on laptops, in CI and in containers
+* text=auto eol=lf

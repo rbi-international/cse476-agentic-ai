@@ -152,8 +152,8 @@ def to_lf(root: Path) -> None:
     for f in root.rglob("*"):
         if f.is_file() and f.suffix in {".py", ".md", ".toml", ".txt", ".cfg", ".ini", ".json"}:
             b = f.read_bytes()
-            if b"\r\n" in b:
-                f.write_bytes(b.replace(b"\r\n", b"\n"))
+            if b"\r" in b:
+                f.write_bytes(b.replace(b"\r\n", b"\n").replace(b"\r", b""))
 
 
 def workspace(repo: Path, diff_text: str | None) -> Path:
@@ -163,11 +163,12 @@ def workspace(repo: Path, diff_text: str | None) -> Path:
     shutil.copytree(repo, dst, ignore=shutil.ignore_patterns(".git", "__pycache__", ".venv", "*.pyc"))
     to_lf(dst)
     if diff_text:
-        diff_text = diff_text.replace("\r\n", "\n")
-        p = subprocess.run(["git", "apply", "--whitespace=nowarn", "-"], cwd=dst, input=diff_text,
-                           capture_output=True, text=True)
+        # bytes, not text: on Windows a text pipe would turn every \n back into \r\n
+        data = diff_text.replace("\r\n", "\n").replace("\r", "").encode()
+        p = subprocess.run(["git", "apply", "--whitespace=nowarn", "-"], cwd=dst, input=data, capture_output=True)
         if p.returncode != 0:
-            raise ValueError("The diff does not apply to the demo project: " + p.stderr.strip()[:300])
+            err = p.stderr.decode(errors="replace").strip()
+            raise ValueError("The diff does not apply to the demo project: " + err[:300])
     return dst
 
 
