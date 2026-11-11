@@ -216,3 +216,19 @@ def test_a_windows_checkout_with_crlf_line_endings_still_works(tmp_path):
     diff = sample("03_prompt_injection")  # read_text() hands the diff over with LF, the files stay CRLF
     r = crew.run(diff, win, None, Trace(quiet=True), apply_diff=True)
     assert r["verdict"] == "changes requested"
+
+
+def test_a_docstring_finding_is_not_merged_into_a_missing_test_finding():
+    """Live run on Cloud Run: 'Missing docstring for priority()' vanished as a repeat of 'priority() has no test'."""
+    from crew.agents import _same_problem
+    t = {"path": "a.py", "line": 23, "title": "New function priority() has no test", "category": "tests-missing", "agent": "quality"}
+    d = {"path": "a.py", "line": 23, "title": "Missing docstring for function 'priority'", "category": "docs", "agent": "docs"}
+    e1 = {"path": "a.py", "line": 25, "title": "Dangerous call: eval()", "category": "dangerous", "agent": "security"}
+    e2 = {"path": "a.py", "line": 25, "title": "Use of eval on untrusted input", "category": "quality", "agent": "quality"}
+    assert not _same_problem(t, d) and _same_problem(e1, e2)
+
+
+def test_every_log_line_has_a_message_for_cloud_logging(capsys):
+    Trace().emit("judge", "verdict", "CHANGES REQUESTED")
+    line = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert line["message"] == "judge verdict: CHANGES REQUESTED" and line["severity"] == "INFO"

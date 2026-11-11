@@ -42,7 +42,11 @@ class Trace:
         with self._lock:
             self.events.append(ev)
         if not self.quiet:
-            print(json.dumps(asdict(ev)), flush=True)  # one structured log line per step
+            line = asdict(ev)
+            # Cloud Logging and CloudWatch show "message" as the summary and use "severity" for colour and filters
+            line["message"] = f"{agent} {kind}: {text}"[:300]
+            line["severity"] = "ERROR" if kind == "error" else "WARNING" if "[high]" in text else "INFO"
+            print(json.dumps(line), flush=True)  # one structured log line per step
         if self.on_event:
             self.on_event(ev)
         return ev

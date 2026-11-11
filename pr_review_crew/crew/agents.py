@@ -172,17 +172,19 @@ SPECIALISTS = {"tests": tests_agent, "security": security_agent, "quality": qual
 
 # ---------------------------------------------------------------- judge
 
-STOP = {"with", "from", "that", "this", "into", "line", "code", "call", "calls", "function", "uses", "using",
-        "added", "issue", "problem", "potential", "possible"}
+# the subject of a finding: two findings on one line are the same problem only if they share one of these
+TOPICS = {"eval", "exec", "pickle", "shell", "secret", "token", "password", "credential", "injection",
+          "test", "tests", "docstring", "comment", "print", "long", "unused", "import", "verify", "sql"}
 
 
-def _words(f: dict) -> set[str]:
-    return set(re.findall(r"[a-z]{4,}", f["title"].lower())) - STOP
+def _topics(f: dict) -> set[str]:
+    words = set(re.findall(r"[a-z]+", (f["title"] + " " + f.get("category", "")).lower()))
+    return {"test" if w == "tests" else w for w in words & TOPICS}
 
 
 def _same_problem(a: dict, b: dict) -> bool:
-    """Same file and line, and either the same agent or the same subject (a shared word like 'eval')."""
-    return (a["path"], a["line"]) == (b["path"], b["line"]) and (a["agent"] == b["agent"] or bool(_words(a) & _words(b)))
+    """Same file and line, and the same subject (both about eval, or both about a missing test)."""
+    return (a["path"], a["line"]) == (b["path"], b["line"]) and bool(_topics(a) & _topics(b))
 
 
 def judge(ctx: Context, findings: list[dict]) -> dict:
