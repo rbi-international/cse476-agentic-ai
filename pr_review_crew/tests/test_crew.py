@@ -204,3 +204,15 @@ def test_the_model_is_shown_the_imports_of_changed_files():
     from crew.agents import Context, imports
     files = parse(sample("02_hardcoded_key"))
     assert "import os" in imports(Context(files, "", DEMO, None, Trace(quiet=True)))
+
+
+def test_a_windows_checkout_with_crlf_line_endings_still_works(tmp_path):
+    """gcloud uploads the files exactly as Windows Git left them: CRLF everywhere."""
+    import shutil
+    win = tmp_path / "demo"
+    shutil.copytree(DEMO, win)
+    for f in win.rglob("*.py"):
+        f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
+    diff = sample("03_prompt_injection")  # read_text() hands the diff over with LF, the files stay CRLF
+    r = crew.run(diff, win, None, Trace(quiet=True), apply_diff=True)
+    assert r["verdict"] == "changes requested"

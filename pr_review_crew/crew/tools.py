@@ -147,12 +147,23 @@ def run_tests(repo: Path, timeout: int = 300) -> dict:
     return {"passed": p.returncode == 0, "summary": summary, "failures": failures, "output": "\n".join(lines[-40:])}
 
 
+def to_lf(root: Path) -> None:
+    """Windows checkouts turn line endings into CRLF; git apply on Linux then fails. Make every text file LF."""
+    for f in root.rglob("*"):
+        if f.is_file() and f.suffix in {".py", ".md", ".toml", ".txt", ".cfg", ".ini", ".json"}:
+            b = f.read_bytes()
+            if b"\r\n" in b:
+                f.write_bytes(b.replace(b"\r\n", b"\n"))
+
+
 def workspace(repo: Path, diff_text: str | None) -> Path:
     """A throwaway copy of the project, with the pull request applied if one is given."""
     tmp = Path(tempfile.mkdtemp(prefix="crew-"))
     dst = tmp / "repo"
     shutil.copytree(repo, dst, ignore=shutil.ignore_patterns(".git", "__pycache__", ".venv", "*.pyc"))
+    to_lf(dst)
     if diff_text:
+        diff_text = diff_text.replace("\r\n", "\n")
         p = subprocess.run(["git", "apply", "--whitespace=nowarn", "-"], cwd=dst, input=diff_text,
                            capture_output=True, text=True)
         if p.returncode != 0:
