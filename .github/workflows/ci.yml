@@ -50,6 +50,12 @@ jobs:
           ruff check .
           python -m pytest -q
 
+      - name: Lint and test Hack ShopMate
+        working-directory: shopmate_game
+        run: |
+          ruff check .
+          python -m pytest -q
+
       - name: Refuse to merge a committed secret
         run: |
           if git ls-files | grep -qx '.env'; then
