@@ -18,6 +18,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
+from game import agents
 from game import levels as lv
 from game.model import Simulated, make
 
@@ -48,18 +49,20 @@ class Guess(BaseModel):
     player: str = Field(min_length=4, max_length=40)
     level: int = Field(ge=1, le=len(lv.LEVELS))
     guess: str = Field(min_length=1, max_length=60)
+    name: str = Field(default="", max_length=24)
 
 
 def player(pid: str, name: str = "") -> dict:
     with LOCK:
-        p = PLAYERS.setdefault(pid, {"name": name or "player", "cleared": set(), "last": {}, "t": 0.0})
+        p = PLAYERS.setdefault(pid, {"name": name or "player", "cleared": set(), "last": {}, "t": 0.0, "state": {}})
         if name:
             p["name"] = name.strip()[:24]
         return p
 
 
 def unlocked(p: dict, n: int) -> bool:
-    return n == 1 or (n - 1) in p["cleared"]
+    need = lv.required(lv.BY_N[n])
+    return need is None or need in p["cleared"]
 
 
 @app.get("/health")
@@ -69,7 +72,8 @@ def health():
 
 @app.get("/api/levels")
 def levels_info():
-    return [{"n": x.n, "name": x.name, "defence": x.defence, "hints": x.hints} for x in lv.LEVELS]
+    return [{"n": x.n, "name": x.name, "defence": x.defence, "hints": x.hints, "mode": x.mode, "brief": x.brief,
+             "needs": lv.required(x), "placeholder": x.placeholder, "extreme": x.n >= 6} for x in lv.LEVELS]
 
 
 @app.post("/api/chat")
@@ -87,6 +91,8 @@ def chat(c: Chat):
     if stopped:
         log("blocked", f"L{level.n} input detector", player=p["name"])
         return {"reply": "", "blocked": stopped, "by": "detector"}
+    if level.mode != "chat":
+        return agent_turn(p, level, c.message)
     text = lv.spotlight(c.message) if level.spotlight else c.message
     source = MODEL.name
     if not BUSY.acquire(timeout=20):
@@ -105,9 +111,32 @@ def chat(c: Chat):
     return {"reply": reply, "model": source}
 
 
+def agent_turn(p: dict, level, message: str) -> dict:
+    """Levels 6 to 9: several model calls, tools and agents; the player sees the trace."""
+    state = p["state"].setdefault(level.n, {})
+    source = MODEL.name
+    if not BUSY.acquire(timeout=30):
+        raise HTTPException(503, "ShopMate is busy with the whole class. Try again in a few seconds.")
+    try:
+        try:
+            turn = agents.play(MODEL, level, message, state)
+        except Exception as exc:  # never crash in class: replay the turn on the simulated model
+            log("model_error", type(exc).__name__)
+            if state.get("reviews"):
+                state["reviews"].pop()
+            turn, source = agents.play(FALLBACK, level, message, state), FALLBACK.name
+    finally:
+        BUSY.release()
+    if turn.blocked:
+        log("blocked", f"L{level.n} {turn.by}", player=p["name"])
+    log("agent_turn", f"L{level.n} {len(turn.trace)} steps", player=p["name"])
+    return {"reply": turn.reply, "blocked": turn.blocked, "by": turn.by, "trace": turn.trace,
+            "server_log": turn.server_log, "model": source}
+
+
 @app.post("/api/guess")
 def guess(g: Guess):
-    p = player(g.player)
+    p = player(g.player, g.name)
     level = lv.BY_N[g.level]
     if not unlocked(p, g.level):
         raise HTTPException(403, "Clear the previous level first.")
@@ -120,7 +149,8 @@ def guess(g: Guess):
             CRACKS.insert(0, {"name": p["name"], "level": g.level, "how": p["last"].get(g.level, "")[:160], "t": time.time()})
             del CRACKS[40:]
     log("cracked", f"{p['name']} cleared level {g.level}", level=g.level)
-    return {"ok": True, "lesson": level.lesson, "next": g.level + 1 if g.level < len(lv.LEVELS) else None}
+    nxt = next((x.n for x in lv.LEVELS if lv.required(x) == g.level), None)
+    return {"ok": True, "lesson": level.lesson, "next": nxt}
 
 
 @app.get("/api/board")
@@ -166,7 +196,12 @@ main{max-width:720px;margin:0 auto;padding:14px}
 .def{font-size:14px;color:#5B6470}.def b{color:#1F2328}
 #log{height:46vh;overflow-y:auto;padding:4px}.m{margin:8px 0;padding:10px 12px;border-radius:12px;font-size:15px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
 .me{background:#2C5D8F;color:#fff;margin-left:40px}.bot{background:#EFEAE0;margin-right:40px}.blk{background:#FCE4E4;color:#8A1F1F;margin-right:40px;font-weight:600}
-.sys{background:#DCEFE3;color:#245C39;font-weight:600}.row{display:flex;gap:8px;margin-top:8px}
+.sys{background:#DCEFE3;color:#245C39;font-weight:600}
+.tr{font:12.5px/1.4 ui-monospace,Consolas,monospace;background:#F3F1EC;border-left:3px solid #9AA3AE;margin:4px 40px 4px 10px;padding:6px 9px;border-radius:6px}
+.tr.call{border-color:#6A55A8}.tr.tool{border-color:#2E8B57}.tr.code{border-color:#C2456A;background:#FBE9EC;font-weight:700}.tr.victim{border-color:#C98A12}
+.tr b{font-weight:700}.srv{background:#11151A;color:#7FD1A8;font-family:ui-monospace,Consolas,monospace;font-size:13px;margin-right:40px}
+.brief{font-size:14px;margin-top:8px;padding:9px 11px;background:#FBF1D3;border-radius:8px;border:1px solid #E5D3A0}
+.tab.x{border-color:#C2456A;color:#C2456A}.tab.x.on{background:#C2456A;color:#fff}.row{display:flex;gap:8px;margin-top:8px}
 input,textarea{font:inherit;font-size:16px;padding:10px;border:1px solid #CFC7B6;border-radius:9px;width:100%}
 button.go{padding:10px 16px;border-radius:9px;border:0;background:#2C5D8F;color:#fff;font-weight:700;font-size:16px}
 button.win{background:#3E8E5E}.small{font-size:12px;color:#7A828C}.hint{font-size:13px;color:#7A5A00;margin-top:6px}
@@ -194,21 +229,26 @@ if(!pid){pid=Math.random().toString(36).slice(2,12);try{localStorage.setItem('sm
 const $=id=>document.getElementById(id);
 function save(){try{localStorage.setItem('sm_name',name);localStorage.setItem('sm_done',JSON.stringify([...cleared]))}catch(e){}}
 function add(cls,t){const d=document.createElement('div');d.className='m '+cls;d.textContent=t;$('log').appendChild(d);$('log').scrollTop=1e9}
+function step(s){const d=document.createElement('div');d.className='tr '+s.kind;const b=document.createElement('b');b.textContent=s.who+': ';
+ d.appendChild(b);d.appendChild(document.createTextNode(s.text));$('log').appendChild(d);$('log').scrollTop=1e9}
+const open_=l=>l.needs===null||cleared.has(l.needs);
 async function boot(){L=await (await fetch('/api/levels')).json();if(name){$('name').value=name;join()}}
 function join(){name=$('name').value.trim();if(!name)return;save();$('join').style.display='none';$('game').style.display='block';
- $('who').textContent=name;cur=Math.min(1+Math.max(0,...cleared),L.length);tabs();show()}
-function tabs(){$('tabs').innerHTML='';L.forEach(l=>{const b=document.createElement('button');b.className='tab'+(l.n===cur?' on':'')+(cleared.has(l.n)?' done':'');
- b.textContent='L'+l.n;b.disabled=!(l.n===1||cleared.has(l.n-1));b.onclick=()=>{cur=l.n;tabs();show()};$('tabs').appendChild(b)})}
+ $('who').textContent=name;cur=Math.max(1,...L.filter(open_).map(l=>l.n));tabs();show()}
+function tabs(){$('tabs').innerHTML='';L.forEach(l=>{const b=document.createElement('button');b.className='tab'+(l.extreme?' x':'')+(l.n===cur?' on':'')+(cleared.has(l.n)?' done':'');
+ b.textContent='L'+l.n;b.disabled=!open_(l);b.onclick=()=>{cur=l.n;tabs();show()};$('tabs').appendChild(b)})}
 function show(){const l=L[cur-1];hintI=0;$('def').innerHTML='';const t=document.createElement('b');t.textContent='Level '+l.n+': '+l.name;$('def').appendChild(t);
  $('def').appendChild(document.createTextNode('. Defence: '+l.defence));$('hint').textContent='';$('log').innerHTML='';
- add('bot','Hi! I\\'m ShopMate. How can I help with your order today?');if(l.hints.length){const h=document.createElement('a');h.href='#';h.textContent='Need a hint?';
+ if(l.brief){const d=document.createElement('div');d.className='brief';d.textContent=(l.extreme?'EXTREME. ':'')+l.brief;$('def').appendChild(d)}
+ $('msg').placeholder=l.placeholder;
+ if(l.mode!=='rag')add('bot',l.mode==='chat'?'Hi! I\\'m ShopMate. How can I help with your order today?':'Hi Asha! I\\'m ShopMate. I can check orders, refunds and billing.');if(l.hints.length){const h=document.createElement('a');h.href='#';h.textContent='Need a hint?';
  h.onclick=e=>{e.preventDefault();$('hint').textContent='Hint: '+l.hints[Math.min(hintI++,l.hints.length-1)]};$('hint').appendChild(h)}}
 async function send(){const m=$('msg').value.trim();if(!m)return;add('me',m);$('msg').value='';
  const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({player:pid,name,level:cur,message:m})});
  const j=await r.json();if(!r.ok){add('blk',j.detail||'Error');return}
- if(j.blocked)add('blk',j.blocked);else add('bot',j.reply)}
+ (j.trace||[]).forEach(step);if(j.blocked)add('blk',j.blocked);else if(j.server_log&&j.server_log.length)add('srv',j.reply);else add('bot',j.reply)}
 async function check(){const g=$('guess').value.trim();if(!g)return;
- const r=await fetch('/api/guess',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({player:pid,level:cur,guess:g})});
+ const r=await fetch('/api/guess',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({player:pid,name,level:cur,guess:g})});
  const j=await r.json();if(!r.ok){add('blk',j.detail||'Error');return}
  if(!j.ok){add('blk','Not the code. Keep trying.');return}
  cleared.add(cur);save();add('sys','Level '+cur+' cleared! Lesson: '+j.lesson);$('guess').value='';
@@ -218,8 +258,8 @@ $('msg').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preve
 
 BOARD = """<!doctype html><html><head><meta charset="utf-8"><title>Hack ShopMate: board</title><style>""" + CSS + """
 body{background:#1F2328;color:#fff}main{max-width:1400px}.grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}
-.card{background:#2A3038;border-color:#3A424D}.bar{display:flex;align-items:center;gap:12px;margin:12px 0;font-size:22px}
-.bar .l{width:260px}.bar .t{flex:1;height:30px;background:#3A424D;border-radius:8px;overflow:hidden}.bar .f{display:block;height:100%;background:#5FA37A;transition:width .6s}
+.card{background:#2A3038;border-color:#3A424D}.bar{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:20px}
+.bar .l{width:280px}.bar .t{flex:1;height:30px;background:#3A424D;border-radius:8px;overflow:hidden}.bar .f{display:block;height:100%;background:#5FA37A;transition:width .6s}
 .bar .c{width:60px;text-align:right;font-weight:700}h2{margin:4px 0 10px;font-size:22px;color:#E8C66A}
 .crack{border-left:4px solid #E8C66A;padding:8px 12px;margin:10px 0;background:#232931;border-radius:6px;font-size:17px}
 .crack q{display:block;color:#B8C0CC;font-size:15px;margin-top:4px}ol{font-size:22px;line-height:1.7}</style></head><body>
@@ -227,13 +267,13 @@ body{background:#1F2328;color:#fff}main{max-width:1400px}.grid{display:grid;grid
 <div><div class="card"><h2>Who cracked which level</h2><div id="bars"></div></div><div class="card"><h2>Top players</h2><ol id="top"></ol></div></div>
 <div class="card"><h2>Latest cracks, and how</h2><div id="cracks"></div></div></div></main>
 <script>
-const names=['Just ask','Please don\\'t tell','The phrase detector','Output guard','The lock is in the code'];
-async function tick(){try{const b=await (await fetch('/api/board')).json();
+let names={};
+async function tick(){try{if(!Object.keys(names).length)(await (await fetch('/api/levels')).json()).forEach(l=>names[l.n]=l.name);const b=await (await fetch('/api/board')).json();
 document.getElementById('meta').textContent=b.players+' players | model: '+b.model;
 const mx=Math.max(1,b.players);const bars=document.getElementById('bars');bars.innerHTML='';
 Object.entries(b.per_level).forEach(([n,c])=>{const d=document.createElement('div');d.className='bar';
 d.innerHTML='<span class="l"></span><span class="t"><span class="f"></span></span><span class="c"></span>';
-d.querySelector('.l').textContent='L'+n+' '+names[n-1];d.querySelector('.f').style.width=(100*c/mx)+'%';d.querySelector('.c').textContent=c;bars.appendChild(d)});
+d.querySelector('.l').textContent='L'+n+' '+(names[n]||'');d.querySelector('.f').style.width=(100*c/mx)+'%';d.querySelector('.c').textContent=c;bars.appendChild(d)});
 const top=document.getElementById('top');top.innerHTML='';b.top.forEach(p=>{const li=document.createElement('li');li.textContent=p.name+'  ('+p.cleared+' levels)';top.appendChild(li)});
 const cr=document.getElementById('cracks');cr.innerHTML='';b.cracks.forEach(c=>{const d=document.createElement('div');d.className='crack';
 d.textContent=c.name+' cleared L'+c.level;const q=document.createElement('q');q.textContent=c.how;d.appendChild(q);cr.appendChild(d)})}catch(e){}}
