@@ -246,13 +246,13 @@ function show(){const l=L[cur-1];hintI=0;$('def').innerHTML='';const t=document.
 async function send(){const m=$('msg').value.trim();if(!m)return;add('me',m);$('msg').value='';
  const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({player:pid,name,level:cur,message:m})});
  const j=await r.json();if(!r.ok){add('blk',j.detail||'Error');return}
- (j.trace||[]).forEach(step);if(j.blocked)add('blk',j.blocked);else if(j.server_log&&j.server_log.length)add('srv',j.reply);else add('bot',j.reply)}
+ $('who').textContent=name+((j.model||'').includes('simulated')?'  ·  OFFLINE MODE':'');(j.trace||[]).forEach(step);if(j.blocked)add('blk',j.blocked);else if(j.server_log&&j.server_log.length)add('srv',j.reply);else add('bot',j.reply)}
 async function check(){const g=$('guess').value.trim();if(!g)return;
  const r=await fetch('/api/guess',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({player:pid,name,level:cur,guess:g})});
  const j=await r.json();if(!r.ok){add('blk',j.detail||'Error');return}
  if(!j.ok){add('blk','Not the code. Keep trying.');return}
  cleared.add(cur);save();add('sys','Level '+cur+' cleared! Lesson: '+j.lesson);$('guess').value='';
- if(j.next){cur=j.next;setTimeout(()=>{tabs();show()},2600)}else{tabs();add('sys','You cleared every level that can be cleared.')}}
+ if(j.next===5)add('sys','Level 5 cannot be won by anyone. Try it, then jump to L6: the extreme levels are open.');if(j.next){cur=j.next;setTimeout(()=>{tabs();show()},2600)}else{tabs();add('sys','You cleared every level that can be cleared.')}}
 $('msg').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});boot();
 </script></body></html>"""
 

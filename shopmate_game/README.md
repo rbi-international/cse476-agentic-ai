@@ -32,7 +32,9 @@ python -m pytest -q                     # 17 tests, no key needed
 uvicorn game.web:app --port 8090        # players: 127.0.0.1:8090   board: 127.0.0.1:8090/board
 ```
 
-With `GROQ_API_KEY` set, a real model answers. Without it, or if the model call fails,
+With `GROQ_API_KEY` set, a real model answers (default `qwen/qwen3.8-27b`; change it with `GAME_MODEL`).
+Groq retires models often: if `/health` shows a model but replies say `OFFLINE MODE`, the model is gone; pick a new one
+from console.groq.com/docs/models. Without it, or if the model call fails,
 a simulated model answers, so the game always works.
 
 ## In class (Cloud Run, same steps as the PR Review Crew)

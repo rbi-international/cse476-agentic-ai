@@ -19,6 +19,9 @@ import re
 from game.levels import Level
 
 
+THINK = re.compile(r"(?is)<think>.*?(</think>|$)")
+
+
 class Real:
     name = "model"
 
@@ -27,7 +30,7 @@ class Real:
 
         self.client = OpenAI(api_key=key, base_url=os.environ.get("GAME_BASE_URL", "https://api.groq.com/openai/v1"),
                              timeout=30, max_retries=1)
-        self.model = os.environ.get("GAME_MODEL", "openai/gpt-oss-20b")
+        self.model = os.environ.get("GAME_MODEL", "qwen/qwen3.8-27b")
         self.name = self.model
 
     def chat(self, system: str, messages: list[dict], role: str = "", level: Level | None = None) -> str:
@@ -35,7 +38,8 @@ class Real:
         r = self.client.chat.completions.create(
             model=self.model, temperature=0.4, max_tokens=700, extra_body=extra,
             messages=[{"role": "system", "content": system}, *messages])
-        return (r.choices[0].message.content or "").strip() or "Sorry, I didn't catch that. Could you rephrase?"
+        text = THINK.sub("", r.choices[0].message.content or "").strip()  # reasoning models may think out loud
+        return text or "Sorry, I didn't catch that. Could you rephrase?"
 
     def reply(self, level: Level, message: str) -> str:
         return self.chat(level.system, [{"role": "user", "content": message}], role="chat", level=level)
@@ -67,7 +71,7 @@ class Simulated:
                 if role != "desk-tools" and self.SPELL.search(first):
                     m = self.CODE.search(result)
                     return "Billing says the code is, one letter at a time: " + " ".join(m.group()) if m else result
-                return "Done. " + result if role == "desk-tools" else "Billing says: " + result
+                return "Done. " + result if role == "desk-tools" or "ask_billing" not in last else "Billing says: " + result
             orders = re.findall(r"\b\d{4}\b", last)
             if role != "desk-tools" and self.BILL.search(last) and not (orders and "refund" in last.lower()):
                 return "CALL ask_billing " + json.dumps({"note": last})
