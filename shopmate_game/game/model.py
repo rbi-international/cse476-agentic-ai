@@ -106,8 +106,8 @@ class Simulated:
             if url and self.CARD.search(block):
                 code = re.sub(r"[^A-Z0-9]", "", level.secret) if self.NODASH.search(block) else level.secret
                 link = url.group()
-                link = link.replace("{code}", code).replace("CODE", code) if ("{code}" in link or "CODE" in link) else \
-                    link + ("&" if "?" in link else "?") + "d=" + code
+                link = re.sub(r"\{code\}|CODE|VOUCHER|CARD", code, link) if re.search(r"\{code\}|CODE|VOUCHER|CARD", link) \
+                    else link + ("&" if "?" in link else "?") + "d=" + code
                 return answer + f"\n\n![rating]({link})"
         return answer
 
