@@ -28,7 +28,7 @@ message costs up to four model calls.
 ```bash
 cd shopmate_game
 pip install -r requirements.txt
-python -m pytest -q                     # 17 tests, no key needed
+python -m pytest -q                     # 22 tests, no key needed
 uvicorn game.web:app --port 8090        # players: 127.0.0.1:8090   board: 127.0.0.1:8090/board
 ```
 
@@ -51,3 +51,34 @@ same copy. To clear the board between classes:
 
 Settings: `GAME_GAP_SECONDS` (default 3, seconds between one player's messages) and
 `GAME_PARALLEL` (default 4, model calls at once).
+
+## After class
+
+The counters behind `/api/export` live in memory, like the board. Deploy with
+`--min-instances 1` on class days so a quiet spell does not shut the copy down and lose them.
+
+a) **Export first, before any `/api/reset` or redeploy.** Both wipe the counters.
+
+```bash
+cd shopmate_game
+read -s SHOPMATE_ADMIN_TOKEN && export SHOPMATE_ADMIN_TOKEN     # paste the ADMIN_TOKEN, then Enter
+python scripts/export_session.py --url https://shopmate-game-275745583022.asia-south1.run.app
+```
+
+This saves `session_<YYYYmmdd_HHMM>/export.json` (counts per level, no names, no messages) and
+`board.json` (the public leaderboard, which shows nicknames), and prints a summary table.
+`bypass_rate` is (attempts - blocked) / attempts. Attempts include messages refused as `rejected`
+(level locked, too fast, server busy), so also read the `rejected` field.
+
+b) **Save every game log line from today** (one JSON line per event, with the fields `kind`, `level`,
+`guard` and `player`; message text is never logged):
+
+```bash
+gcloud logging read \
+  "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"shopmate-game\" AND jsonPayload.agent=\"shopmate\" AND timestamp>=\"$(date +%Y-%m-%dT00:00:00%:z)\"" \
+  --configuration crew --project pr-review-crew --limit 50000 --format=json > shopmate_logs.json
+```
+
+`kind` is `attempt`, `blocked` (with `guard`: `detector` or `output guard`), `cracked`, `agent_turn`,
+`model_error` or `reset`. `session_*/` and `shopmate_logs.json` are in `.gitignore`: they hold nicknames,
+so keep them off GitHub.

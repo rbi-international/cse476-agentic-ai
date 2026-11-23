@@ -13,6 +13,7 @@ import json
 import os
 import threading
 import time
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -30,6 +31,36 @@ BUSY = threading.BoundedSemaphore(int(os.environ.get("GAME_PARALLEL", "4")))  # 
 GAP = float(os.environ.get("GAME_GAP_SECONDS", "3"))                              # per player
 PLAYERS: dict[str, dict] = {}   # id -> {"name", "cleared": set, "last": {level: message}, "t": last request}
 CRACKS: list[dict] = []         # newest first, for the board
+START = time.time()
+
+
+def _empty_counters() -> dict:
+    return {x.n: {"attempts": 0, "rejected": 0, "blocked": {}, "cracked": 0, "players": set()} for x in lv.LEVELS}
+
+
+COUNTERS = _empty_counters()    # per level, for /api/export: counts and player ids only, never names or messages
+COUNTING_SINCE = time.time()
+
+
+def tally(n: int, field: str, pid: str = "", guard: str = ""):
+    with LOCK:
+        c = COUNTERS[n]
+        if guard:
+            c["blocked"][guard] = c["blocked"].get(guard, 0) + 1
+        else:
+            c[field] += 1
+        if pid:
+            c["players"].add(pid)
+
+
+def reset_counters():
+    global COUNTERS, COUNTING_SINCE
+    with LOCK:
+        COUNTERS, COUNTING_SINCE = _empty_counters(), time.time()
+
+
+def _utc(t: float) -> str:
+    return datetime.fromtimestamp(t, timezone.utc).isoformat(timespec="seconds")
 
 
 def log(kind: str, text: str, **data):
@@ -79,23 +110,29 @@ def levels_info():
 @app.post("/api/chat")
 def chat(c: Chat):
     p = player(c.player, c.name)
+    log("attempt", f"L{c.level}", player=p["name"], level=c.level)
+    tally(c.level, "attempts", pid=c.player)
     if not unlocked(p, c.level):
+        tally(c.level, "rejected")
         raise HTTPException(403, "Clear the previous level first.")
     now = time.time()
     if now - p["t"] < GAP:
+        tally(c.level, "rejected")
         raise HTTPException(429, f"Slow down: one message every {GAP:.0f} seconds.")
     p["t"] = now
     level = lv.BY_N[c.level]
     p["last"][c.level] = c.message
     stopped = lv.blocked_input(level, c.message)
     if stopped:
-        log("blocked", f"L{level.n} input detector", player=p["name"])
+        log("blocked", f"L{level.n} input detector", player=p["name"], level=level.n, guard="detector")
+        tally(level.n, "blocked", guard="detector")
         return {"reply": "", "blocked": stopped, "by": "detector"}
     if level.mode != "chat":
         return agent_turn(p, level, c.message)
     text = lv.spotlight(c.message) if level.spotlight else c.message
     source = MODEL.name
     if not BUSY.acquire(timeout=20):
+        tally(level.n, "rejected")
         raise HTTPException(503, "ShopMate is busy with the whole class. Try again in a few seconds.")
     try:
         reply = MODEL.reply(level, text)
@@ -106,7 +143,8 @@ def chat(c: Chat):
         BUSY.release()
     stopped = lv.blocked_output(level, reply)
     if stopped:
-        log("blocked", f"L{level.n} output guard", player=p["name"])
+        log("blocked", f"L{level.n} output guard", player=p["name"], level=level.n, guard="output guard")
+        tally(level.n, "blocked", guard="output guard")
         return {"reply": "", "blocked": stopped, "by": "output guard"}
     return {"reply": reply, "model": source}
 
@@ -116,6 +154,7 @@ def agent_turn(p: dict, level, message: str) -> dict:
     state = p["state"].setdefault(level.n, {})
     source = MODEL.name
     if not BUSY.acquire(timeout=30):
+        tally(level.n, "rejected")
         raise HTTPException(503, "ShopMate is busy with the whole class. Try again in a few seconds.")
     try:
         try:
@@ -128,7 +167,8 @@ def agent_turn(p: dict, level, message: str) -> dict:
     finally:
         BUSY.release()
     if turn.blocked:
-        log("blocked", f"L{level.n} {turn.by}", player=p["name"])
+        log("blocked", f"L{level.n} {turn.by}", player=p["name"], level=level.n, guard=turn.by)
+        tally(level.n, "blocked", guard=turn.by)
     log("agent_turn", f"L{level.n} {len(turn.trace)} steps", player=p["name"])
     return {"reply": turn.reply, "blocked": turn.blocked, "by": turn.by, "trace": turn.trace,
             "server_log": turn.server_log, "model": source}
@@ -149,6 +189,7 @@ def guess(g: Guess):
             CRACKS.insert(0, {"name": p["name"], "level": g.level, "how": p["last"].get(g.level, "")[:160], "t": time.time()})
             del CRACKS[40:]
     log("cracked", f"{p['name']} cleared level {g.level}", level=g.level)
+    tally(g.level, "cracked")
     nxt = next((x.n for x in lv.LEVELS if lv.required(x) == g.level), None)
     return {"ok": True, "lesson": level.lesson, "next": nxt}
 
@@ -163,14 +204,39 @@ def board():
                 "cracks": CRACKS[:8]}
 
 
+def is_admin(request: Request) -> bool:
+    token = os.environ.get("ADMIN_TOKEN")
+    return bool(token) and request.headers.get("x-admin-token") == token
+
+
+@app.get("/api/export")
+def export(request: Request):
+    """Counts for the course evaluation. No names and no message text: display names stay on /api/board."""
+    if not is_admin(request):
+        raise HTTPException(403, "Export needs ADMIN_TOKEN.")
+    now = time.time()
+    with LOCK:
+        everyone = set().union(*(c["players"] for c in COUNTERS.values()))
+        per = {}
+        for n, c in COUNTERS.items():
+            blocked = sum(c["blocked"].values())
+            per[str(n)] = {"attempts": c["attempts"], "rejected": c["rejected"], "players": len(c["players"]),
+                           "blocked_by_guard": dict(c["blocked"]), "blocked_total": blocked, "cracked": c["cracked"],
+                           "players_cleared": sum(1 for p in PLAYERS.values() if n in p["cleared"]),
+                           "bypass_rate": round((c["attempts"] - blocked) / c["attempts"], 4) if c["attempts"] else None}
+        since = COUNTING_SINCE
+    return {"exported_at": _utc(now), "model": MODEL.name, "uptime_seconds": int(now - START),
+            "counting_since": _utc(since), "players": len(everyone), "levels": per}
+
+
 @app.post("/api/reset")
 def reset(request: Request):
-    token = os.environ.get("ADMIN_TOKEN")
-    if not token or request.headers.get("x-admin-token") != token:
+    if not is_admin(request):
         raise HTTPException(403, "Reset needs ADMIN_TOKEN.")
     with LOCK:
         PLAYERS.clear()
         CRACKS.clear()
+    reset_counters()
     log("reset", "board cleared")
     return {"ok": True}
 
