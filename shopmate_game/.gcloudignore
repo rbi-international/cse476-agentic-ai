@@ -1,0 +1,16 @@
+# What `gcloud run deploy --source .` must NOT upload to Cloud Build.
+# Class data holds student nicknames; the image only needs requirements.txt and game/.
+.gcloudignore
+.git
+.gitignore
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+tests/
+docs/
+scripts/
+session_*/
+outcomes_*/
+shopmate_logs*.json
+qwen_test_log.json

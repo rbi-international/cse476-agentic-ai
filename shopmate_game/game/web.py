@@ -13,6 +13,7 @@ import json
 import os
 import threading
 import time
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Request
@@ -21,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from game import agents
 from game import levels as lv
+from game import outcomes as oc
 from game.model import Simulated, make
 
 app = FastAPI(title="Hack ShopMate")
@@ -63,6 +65,10 @@ def _utc(t: float) -> str:
     return datetime.fromtimestamp(t, timezone.utc).isoformat(timespec="seconds")
 
 
+BUCKET = os.environ.get("OUTCOMES_BUCKET", "")    # Cloud Storage bucket for outcome snapshots; empty = off
+SNAP = {"last": time.time(), "sig": ""}
+
+
 def log(kind: str, text: str, **data):
     """One JSON line per event: readable in Cloud Logging, same as the crew."""
     print(json.dumps({"agent": "shopmate", "kind": kind, "message": f"shopmate {kind}: {text}"[:300],
@@ -85,7 +91,8 @@ class Guess(BaseModel):
 
 def player(pid: str, name: str = "") -> dict:
     with LOCK:
-        p = PLAYERS.setdefault(pid, {"name": name or "player", "cleared": set(), "last": {}, "t": 0.0, "state": {}})
+        p = PLAYERS.setdefault(pid, {"name": name or "player", "cleared": set(), "last": {}, "t": 0.0, "state": {},
+                                     "started": 0.0, "tried5": False, "debrief_offered": False})
         if name:
             p["name"] = name.strip()[:24]
         return p
@@ -112,6 +119,26 @@ def chat(c: Chat):
     p = player(c.player, c.name)
     log("attempt", f"L{c.level}", player=p["name"], level=c.level)
     tally(c.level, "attempts", pid=c.player)
+    out = play_turn(c, p)
+    if c.level == 5:
+        p["tried5"] = True
+    return with_debrief(c.player, p, out)
+
+
+def with_debrief(pid: str, p: dict, out: dict) -> dict:
+    """Open the exit debrief once: after the first Level 5 attempt or 30 minutes of play."""
+    now = time.time()
+    due = False
+    with LOCK:
+        if not p["debrief_offered"] and (p["tried5"] or (p["started"] and now - p["started"] >= oc.DEBRIEF_AFTER)):
+            p["debrief_offered"] = due = True
+    if due and not oc.has_exit(pid):
+        out["debrief"] = True
+    maybe_snapshot()
+    return out
+
+
+def play_turn(c: Chat, p: dict) -> dict:
     if not unlocked(p, c.level):
         tally(c.level, "rejected")
         raise HTTPException(403, "Clear the previous level first.")
@@ -120,6 +147,7 @@ def chat(c: Chat):
         tally(c.level, "rejected")
         raise HTTPException(429, f"Slow down: one message every {GAP:.0f} seconds.")
     p["t"] = now
+    p["started"] = p["started"] or now
     level = lv.BY_N[c.level]
     p["last"][c.level] = c.message
     stopped = lv.blocked_input(level, c.message)
@@ -181,7 +209,7 @@ def guess(g: Guess):
     if not unlocked(p, g.level):
         raise HTTPException(403, "Clear the previous level first.")
     if not lv.is_secret(level, g.guess):
-        return {"ok": False}
+        return with_debrief(g.player, p, {"ok": False})
     with LOCK:
         first = g.level not in p["cleared"]
         p["cleared"].add(g.level)
@@ -191,7 +219,7 @@ def guess(g: Guess):
     log("cracked", f"{p['name']} cleared level {g.level}", level=g.level)
     tally(g.level, "cracked")
     nxt = next((x.n for x in lv.LEVELS if lv.required(x) == g.level), None)
-    return {"ok": True, "lesson": level.lesson, "next": nxt}
+    return with_debrief(g.player, p, {"ok": True, "lesson": level.lesson, "next": nxt})
 
 
 @app.get("/api/board")
@@ -214,6 +242,10 @@ def export(request: Request):
     """Counts for the course evaluation. No names and no message text: display names stay on /api/board."""
     if not is_admin(request):
         raise HTTPException(403, "Export needs ADMIN_TOKEN.")
+    return export_payload()
+
+
+def export_payload() -> dict:
     now = time.time()
     with LOCK:
         everyone = set().union(*(c["players"] for c in COUNTERS.values()))
@@ -233,12 +265,104 @@ def export(request: Request):
 def reset(request: Request):
     if not is_admin(request):
         raise HTTPException(403, "Reset needs ADMIN_TOKEN.")
+    saved = snapshot("reset")                 # keep this batch's outcomes before they are cleared
     with LOCK:
         PLAYERS.clear()
         CRACKS.clear()
     reset_counters()
-    log("reset", "board cleared")
-    return {"ok": True}
+    oc.clear()
+    log("reset", "board cleared", snapshot=saved)
+    return {"ok": True, "snapshot": saved}
+
+
+# ------------------------------------------------------------------ learning outcomes
+class Outcome(BaseModel):
+    player: str = Field(min_length=4, max_length=40)
+    phase: str = Field(pattern="^(entry|exit)$")
+    skipped: bool = False
+    answers: dict[str, int] = Field(default_factory=dict)
+    confidence: int | None = None
+    ratings: dict[str, int] = Field(default_factory=dict)
+    comment: str = Field(default="", max_length=500)
+
+
+@app.get("/api/quiz")
+def quiz():
+    return oc.public_questions()
+
+
+@app.post("/api/outcome")
+def outcome(o: Outcome):
+    """Entry check or exit debrief. Keyed by the anonymous player id; no nickname is stored with it."""
+    try:
+        r = oc.submit(o.player, o.phase, o.answers, o.confidence, o.ratings, o.comment, o.skipped)
+    except oc.Invalid as exc:
+        raise HTTPException(400, str(exc))
+    log("outcome", o.phase, phase=o.phase, skipped=o.skipped, stored=r["stored"], score=r["score"],
+        confidence=None if o.skipped else o.confidence, ratings=o.ratings or None, player_id=o.player)
+    maybe_snapshot()
+    return {"ok": True, **r}
+
+
+def outcomes_payload() -> dict:
+    return {"exported_at": _utc(time.time()), **oc.summary(), "game": export_payload()}
+
+
+@app.get("/api/outcomes")
+def outcomes(request: Request):
+    """Everything for the evaluation in one call: learning outcomes plus the same game counts as /api/export."""
+    if not is_admin(request):
+        raise HTTPException(403, "Outcomes need ADMIN_TOKEN.")
+    out = outcomes_payload()
+    maybe_snapshot()
+    return out
+
+
+def write_snapshot(name: str, body: bytes) -> None:
+    oc.gcs_write(BUCKET, name, body)
+
+
+def snapshot(reason: str) -> bool:
+    """Write the outcomes and game counts to Cloud Storage. Never raises: the class must not see an error."""
+    if not BUCKET:
+        return False
+    payload = {"reason": reason, **outcomes_payload()}
+    game = {k: v for k, v in payload["game"].items() if k not in ("exported_at", "uptime_seconds")}
+    sig = json.dumps({**{k: v for k, v in payload.items() if k not in ("exported_at", "reason", "game")}, "g": game},
+                     sort_keys=True)
+    now = time.time()
+    SNAP["last"] = now
+    if reason == "periodic" and sig == SNAP["sig"]:
+        return False                              # nothing new since the last snapshot
+    name = f"shopmate/{datetime.fromtimestamp(now, timezone.utc):%Y%m%dT%H%M%SZ}_{reason}_{uuid.uuid4().hex[:6]}.json"
+    try:
+        write_snapshot(name, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+    except Exception as exc:  # a storage failure must never break the game
+        log("snapshot_error", type(exc).__name__, reason=reason)
+        return False
+    SNAP["sig"] = sig
+    log("snapshot", name, reason=reason)
+    return True
+
+
+def maybe_snapshot():
+    if not BUCKET:
+        return
+    with LOCK:
+        if time.time() - SNAP["last"] < oc.SNAPSHOT_EVERY:
+            return
+        SNAP["last"] = time.time()
+    snapshot("periodic")
+
+
+def _snapshot_loop():
+    while True:
+        time.sleep(60)
+        maybe_snapshot()
+
+
+if BUCKET:
+    threading.Thread(target=_snapshot_loop, daemon=True, name="outcome-snapshots").start()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -270,7 +394,13 @@ main{max-width:720px;margin:0 auto;padding:14px}
 .tab.x{border-color:#C2456A;color:#C2456A}.tab.x.on{background:#C2456A;color:#fff}.row{display:flex;gap:8px;margin-top:8px}
 input,textarea{font:inherit;font-size:16px;padding:10px;border:1px solid #CFC7B6;border-radius:9px;width:100%}
 button.go{padding:10px 16px;border-radius:9px;border:0;background:#2C5D8F;color:#fff;font-weight:700;font-size:16px}
-button.win{background:#3E8E5E}.small{font-size:12px;color:#7A828C}.hint{font-size:13px;color:#7A5A00;margin-top:6px}
+button.win{background:#3E8E5E}button.ghost{background:#fff;color:#2C5D8F;border:1px solid #2C5D8F}
+.ov{position:fixed;inset:0;background:rgba(20,24,30,.55);display:flex;align-items:flex-start;justify-content:center;padding:16px 12px;overflow-y:auto;z-index:20}
+.ov[hidden]{display:none}.sheet{max-width:560px;width:100%}.qq{margin:14px 0}.qq b{display:block;margin-bottom:6px;font-size:15px}
+.opt{display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border:1px solid #D9D2C3;border-radius:8px;margin:5px 0;font-size:14px;cursor:pointer}
+.opt input,.scale input{width:auto;margin:3px 0 0}.scale{display:flex;gap:6px}
+.scale label{flex:1;display:flex;gap:4px;justify-content:center;border:1px solid #D9D2C3;border-radius:8px;padding:6px 0;font-size:14px;cursor:pointer}
+.ends{display:flex;justify-content:space-between;font-size:11px;color:#7A828C;margin-top:3px}.err{color:#8A1F1F;font-size:13px;min-height:18px}.small{font-size:12px;color:#7A828C}.hint{font-size:13px;color:#7A5A00;margin-top:6px}
 """
 
 PLAY = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -287,7 +417,9 @@ do not type anything personal.</div></div>
 <div class="row"><textarea id="msg" rows="2" placeholder="Message ShopMate..." maxlength="500"></textarea>
 <button class="go" onclick="send()">Send</button></div>
 <div class="row"><input id="guess" placeholder="I found the code: type it here"><button class="go win" onclick="check()">Check</button></div></div>
+<div class="row" style="justify-content:flex-end"><button class="go ghost" onclick="debrief(false)">Finish</button></div>
 </div></main>
+<div class="ov" id="ov" hidden><div class="card sheet" id="sheet"></div></div>
 <script>
 let L=[],cur=1,cleared=new Set(),pid=null,name="",hintI=0;
 try{pid=localStorage.getItem('sm_pid');name=localStorage.getItem('sm_name')||'';cleared=new Set(JSON.parse(localStorage.getItem('sm_done')||'[]'))}catch(e){}
@@ -300,7 +432,7 @@ function step(s){const d=document.createElement('div');d.className='tr '+s.kind;
 const open_=l=>l.needs===null||cleared.has(l.needs);
 async function boot(){L=await (await fetch('/api/levels')).json();if(name){$('name').value=name;join()}}
 function join(){name=$('name').value.trim();if(!name)return;save();$('join').style.display='none';$('game').style.display='block';
- $('who').textContent=name;cur=Math.max(1,...L.filter(open_).map(l=>l.n));tabs();show()}
+ $('who').textContent=name;cur=Math.max(1,...L.filter(open_).map(l=>l.n));tabs();show();if(!lsGet('sm_entry')&&!cleared.size)form('entry')}
 function tabs(){$('tabs').innerHTML='';L.forEach(l=>{const b=document.createElement('button');b.className='tab'+(l.extreme?' x':'')+(l.n===cur?' on':'')+(cleared.has(l.n)?' done':'');
  b.textContent='L'+l.n;b.disabled=!open_(l);b.onclick=()=>{cur=l.n;tabs();show()};$('tabs').appendChild(b)})}
 function show(){const l=L[cur-1];hintI=0;$('def').innerHTML='';const t=document.createElement('b');t.textContent='Level '+l.n+': '+l.name;$('def').appendChild(t);
@@ -312,13 +444,48 @@ function show(){const l=L[cur-1];hintI=0;$('def').innerHTML='';const t=document.
 async function send(){const m=$('msg').value.trim();if(!m)return;add('me',m);$('msg').value='';
  const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({player:pid,name,level:cur,message:m})});
  const j=await r.json();if(!r.ok){add('blk',j.detail||'Error');return}
- $('who').textContent=name+((j.model||'').includes('simulated')?'  ·  OFFLINE MODE':'');(j.trace||[]).forEach(step);if(j.blocked)add('blk',j.blocked);else if(j.server_log&&j.server_log.length)add('srv',j.reply);else add('bot',j.reply)}
+ $('who').textContent=name+((j.model||'').includes('simulated')?'  ·  OFFLINE MODE':'');(j.trace||[]).forEach(step);if(j.blocked)add('blk',j.blocked);else if(j.server_log&&j.server_log.length)add('srv',j.reply);else add('bot',j.reply);if(j.debrief)setTimeout(()=>debrief(true),1800)}
 async function check(){const g=$('guess').value.trim();if(!g)return;
  const r=await fetch('/api/guess',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({player:pid,name,level:cur,guess:g})});
  const j=await r.json();if(!r.ok){add('blk',j.detail||'Error');return}
+ if(j.debrief)setTimeout(()=>debrief(true),3000);
  if(!j.ok){add('blk','Not the code. Keep trying.');return}
  cleared.add(cur);save();add('sys','Level '+cur+' cleared! Lesson: '+j.lesson);$('guess').value='';
  if(j.next===5)add('sys','Level 5 cannot be won by anyone. Try it, then jump to L6: the extreme levels are open.');if(j.next){cur=j.next;setTimeout(()=>{tabs();show()},2600)}else{tabs();add('sys','You cleared every level that can be cleared.')}}
+let QZ=null;
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+async function qz(){if(!QZ)QZ=await (await fetch('/api/quiz')).json();return QZ}
+function choice(nm,opts){const w=document.createElement('div');opts.forEach((o,i)=>{const l=document.createElement('label');l.className='opt';
+ const r=document.createElement('input');r.type='radio';r.name=nm;r.value=i;r.id=nm+'_'+i;l.appendChild(r);l.appendChild(document.createTextNode(o));w.appendChild(l)});return w}
+function scale(nm,ends){const w=document.createElement('div');const s=document.createElement('div');s.className='scale';
+ for(let i=1;i<=5;i++){const l=document.createElement('label');const r=document.createElement('input');r.type='radio';r.name=nm;r.value=i;r.id=nm+'_'+i;
+ l.appendChild(r);l.appendChild(document.createTextNode(String(i)));s.appendChild(l)}w.appendChild(s);
+ const e=document.createElement('div');e.className='ends';const a=document.createElement('span');a.textContent='1 '+ends[0];const b=document.createElement('span');b.textContent='5 '+ends[ends.length-1];
+ e.appendChild(a);e.appendChild(b);w.appendChild(e);return w}
+function item(title,ctl){const d=document.createElement('div');d.className='qq';const b=document.createElement('b');b.textContent=title;d.appendChild(b);d.appendChild(ctl);return d}
+function val(nm){const r=document.querySelector('input[name="'+nm+'"]:checked');return r?Number(r.value):null}
+async function post(b){try{const r=await fetch('/api/outcome',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});return r.ok?await r.json():null}catch(e){return null}}
+async function form(phase){let q;try{q=await qz()}catch(e){return}const s=$('sheet');s.innerHTML='';const entry=phase==='entry';
+ const h=document.createElement('b');h.style.fontSize='18px';h.textContent=entry?'Quick check before you play':'Debrief: how did it go?';s.appendChild(h);
+ const p=document.createElement('div');p.className='small';p.textContent=(entry?'4 quick questions, under a minute. ':'The same questions again, plus your opinion. ')+'Anonymous: your name is not stored with your answers.';s.appendChild(p);
+ q.quiz.forEach((x,i)=>s.appendChild(item((i+1)+'. '+x.text,choice(x.id,x.options))));
+ s.appendChild(item(q.confidence.text,scale(q.confidence.id,q.scale)));
+ if(!entry){q.ratings.forEach(r=>s.appendChild(item(r.text,scale(r.id,q.scale))));
+  const t=document.createElement('textarea');t.id='fb_comment';t.rows=2;t.maxLength=500;t.placeholder='Optional';s.appendChild(item('Any comment?',t))}
+ const err=document.createElement('div');err.className='err';err.id='fb_err';s.appendChild(err);
+ const row=document.createElement('div');row.className='row';const go=document.createElement('button');go.className='go';go.textContent=entry?'Start playing':'Send';
+ const no=document.createElement('button');no.className='go ghost';no.textContent=entry?'Skip':'Later';
+ go.onclick=()=>sendForm(phase,q);no.onclick=()=>{if(entry){post({player:pid,phase:'entry',skipped:true});lsSet('sm_entry','1')}$('ov').hidden=true};
+ row.appendChild(go);row.appendChild(no);s.appendChild(row);$('ov').hidden=false;$('ov').scrollTop=0}
+async function sendForm(phase,q){const say=t=>{$('fb_err').textContent=t};const answers={},ratings={};
+ for(const x of q.quiz){const v=val(x.id);if(v===null)return say('Please answer every question, or press '+(phase==='entry'?'Skip':'Later')+'.');answers[x.id]=v}
+ const c=val(q.confidence.id);if(c===null)return say('Please pick a number from 1 to 5 for each statement.');
+ if(phase==='exit')for(const r of q.ratings){const v=val(r.id);if(v===null)return say('Please pick a number from 1 to 5 for each statement.');ratings[r.id]=v}
+ const j=await post({player:pid,phase,answers,confidence:c,ratings,comment:phase==='exit'?$('fb_comment').value:''});
+ if(!j)return say('Could not send. Check your connection and press the button again.');
+ lsSet('sm_'+phase,'1');$('ov').hidden=true;if(phase==='exit')add('sys','Thanks for the debrief! Quiz score: '+j.score+' of '+q.quiz.length+'. You can keep playing.')}
+function debrief(auto){if(lsGet('sm_exit')){if(!auto)add('sys','You already sent your debrief. Thanks!');return}form('exit')}
 $('msg').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});boot();
 </script></body></html>"""
 

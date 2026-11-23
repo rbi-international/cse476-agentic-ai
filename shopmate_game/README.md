@@ -28,7 +28,7 @@ message costs up to four model calls.
 ```bash
 cd shopmate_game
 pip install -r requirements.txt
-python -m pytest -q                     # 22 tests, no key needed
+python -m pytest -q                     # 31 tests, no key needed
 uvicorn game.web:app --port 8090        # players: 127.0.0.1:8090   board: 127.0.0.1:8090/board
 ```
 
@@ -82,3 +82,46 @@ gcloud logging read \
 `kind` is `attempt`, `blocked` (with `guard`: `detector` or `output guard`), `cracked`, `agent_turn`,
 `model_error` or `reset`. `session_*/` and `shopmate_logs.json` are in `.gitignore`: they hold nicknames,
 so keep them off GitHub.
+
+## Learning outcomes
+
+The game measures learning on its own, anonymously:
+
+- **Entry check**, shown once before Level 1 (with a Skip button): three multiple-choice questions on
+  prompt-injection defences and one confidence rating (1 to 5). About 45 seconds.
+- **Exit debrief**, opened after a player's first attempt at Level 5 or after 30 minutes of play,
+  whichever comes first, and any time from the **Finish** button: the same four items, three
+  evaluation ratings (1 to 5) and an optional comment.
+
+Answers are scored on the server and keyed by the random player id the browser already uses.
+No nickname and no game message is stored with them, and comments are kept in a separate list
+with no id. The questions live in `game/outcomes.py`.
+
+Everything for the evaluation comes from one admin call, `GET /api/outcomes` (header
+`x-admin-token`): counts (`n_entry`, `n_exit`, `n_paired`), quiz and confidence means for entry and
+exit (all respondents and paired), the share agreeing (4 or 5) with each item, the comments, the
+anonymous per-player rows, and the same per-level game counts as `/api/export`.
+
+With `OUTCOMES_BUCKET` set, the server also writes this JSON to Cloud Storage
+(`gs://<bucket>/shopmate/<time>_<reason>.json`): on every `/api/reset` before it clears, and every
+10 minutes while players are active (skipped when nothing changed). A storage failure is logged as
+`snapshot_error` and never reaches the players. Each answer is also logged as a `kind: outcome` line.
+
+After class:
+
+```bash
+cd shopmate_game
+read -s SHOPMATE_ADMIN_TOKEN && export SHOPMATE_ADMIN_TOKEN
+python scripts/outcomes_report.py --url https://shopmate-game-275745583022.asia-south1.run.app
+```
+
+This writes `outcomes_<YYYYmmdd_HHMM>/`: `outcomes.csv` (one row per anonymous player),
+`chart_quiz.svg`, `chart_confidence.svg` (PNG copies too when matplotlib is installed),
+`comments.txt`, `outcomes.json` and `summary.txt` with a paragraph ready for a report. After a reset
+or a restart, build the same report from the latest snapshot:
+
+```bash
+gcloud storage ls gs://pr-review-crew-shopmate-outcomes/shopmate/
+gcloud storage cp gs://pr-review-crew-shopmate-outcomes/shopmate/<file>.json .
+python scripts/outcomes_report.py --file <file>.json
+```

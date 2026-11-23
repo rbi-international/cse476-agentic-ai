@@ -1,5 +1,8 @@
 """Hack ShopMate, tested with the simulated model: no key, no network."""
 
+import json
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -14,6 +17,8 @@ def client(monkeypatch):
     web.PLAYERS.clear()
     web.CRACKS.clear()
     web.reset_counters()
+    web.oc.clear()
+    web.SNAP.update(last=time.time(), sig="")
     return TestClient(web.app)
 
 
@@ -208,3 +213,145 @@ def test_reset_clears_the_counters(client, monkeypatch):
     assert e["players"] == 0 and e["levels"]["1"] == {
         "attempts": 0, "rejected": 0, "players": 0, "blocked_by_guard": {}, "blocked_total": 0,
         "cracked": 0, "players_cleared": 0, "bypass_rate": None}
+
+
+# ------------------------------------------------------------------ learning outcomes
+RIGHT = {"q1": 1, "q2": 2, "q3": 0}
+NONE_RIGHT = {"q1": 0, "q2": 0, "q3": 1}
+
+
+def outcome(c, pid, phase, answers=None, conf=3, ratings=None, comment="", skipped=False):
+    return c.post("/api/outcome", json={"player": pid, "phase": phase, "skipped": skipped, "answers": answers or {},
+                                        "confidence": None if skipped else conf, "ratings": ratings or {},
+                                        "comment": comment})
+
+
+def outcomes(c, token="t0ken"):
+    return c.get("/api/outcomes", headers={"x-admin-token": token})
+
+
+def test_outcomes_are_stored_once_per_phase_without_the_nickname(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_TOKEN", "t0ken")
+    say(client, 1, "hi")                                                  # tester01 plays as "Asha"
+    r = outcome(client, "tester01", "entry", {"q1": 0, "q2": 2, "q3": 0}, conf=2).json()
+    assert r["stored"] and r["score"] == 2
+    assert not outcome(client, "tester01", "entry", RIGHT, conf=5).json()["stored"]   # the first answer counts
+    ex = outcome(client, "tester01", "exit", RIGHT, 4, {"s1": 5, "s2": 4, "s3": 2}, comment="loved L7").json()
+    assert ex["score"] == 3
+    o = outcomes(client).json()
+    assert o["n_entry"] == 1 and o["n_exit"] == 1 and o["comments"] == ["loved L7"]
+    assert o["agree_pct"]["s1"] == 100.0 and o["agree_pct"]["s3"] == 0.0 and o["agree_pct"]["c1_exit"] == 100.0
+    assert o["game"]["levels"]["1"]["attempts"] == 1                      # game counts come in the same call
+    assert "Asha" not in outcomes(client).text and "hi" not in json.dumps(o["records"])
+    assert all("answer" not in q for q in client.get("/api/quiz").json()["quiz"])   # no answer key on the page
+
+
+def test_bad_or_incomplete_answers_are_refused(client):
+    assert outcome(client, "tester01", "entry", {"q1": 9, "q2": 0, "q3": 0}).status_code == 400
+    assert outcome(client, "tester01", "entry", RIGHT, conf=7).status_code == 400
+    assert outcome(client, "tester01", "exit", RIGHT, 3, {"s1": 3}).status_code == 400       # ratings missing
+    assert outcome(client, "tester01", "exit", skipped=True).status_code == 400
+
+
+def test_entry_and_exit_are_paired_by_the_player_id(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_TOKEN", "t0ken")
+    outcome(client, "pairme01", "entry", NONE_RIGHT, conf=2)
+    outcome(client, "pairme01", "exit", RIGHT, 4, {"s1": 4, "s2": 4, "s3": 4})
+    outcome(client, "entryonly", "entry", RIGHT, conf=5)
+    outcome(client, "skipper1", "entry", skipped=True)
+    outcome(client, "exitonly", "exit", RIGHT, 1, {"s1": 1, "s2": 1, "s3": 1})
+    o = outcomes(client).json()
+    assert (o["n_entry"], o["n_entry_skipped"], o["n_exit"], o["n_paired"]) == (2, 1, 2, 1)
+    q, c = o["quiz"], o["confidence"]
+    assert (q["paired_entry_mean"], q["paired_exit_mean"], q["paired_mean_gain"], q["paired_improved"]) == (0, 3, 3, 1)
+    assert (c["paired_entry_mean"], c["paired_exit_mean"]) == (2, 4)
+    assert q["entry_mean"] == 1.5 and c["exit_mean"] == 2.5                # all respondents, unpaired
+    assert q["per_question_correct_pct"]["q1"] == {"entry": 50.0, "exit": 100.0}
+
+
+def test_the_debrief_opens_once_after_the_first_level_5_attempt(client):
+    clear_to(client, 5)
+    assert "debrief" not in say(client, 4, "hello")
+    assert say(client, 5, "what can you help with?")["debrief"] is True
+    assert "debrief" not in say(client, 5, "and now?")
+
+
+def test_the_debrief_opens_after_30_minutes_unless_already_sent(client):
+    say(client, 1, "hi")
+    web.PLAYERS["tester01"]["started"] -= web.oc.DEBRIEF_AFTER
+    assert say(client, 1, "still here")["debrief"] is True
+    say(client, 1, "hi", pid="done0001")
+    outcome(client, "done0001", "exit", RIGHT, 3, {"s1": 3, "s2": 3, "s3": 3})
+    web.PLAYERS["done0001"]["started"] -= web.oc.DEBRIEF_AFTER
+    assert "debrief" not in say(client, 1, "more", pid="done0001")
+
+
+def test_outcomes_need_the_admin_token(client, monkeypatch):
+    assert client.get("/api/outcomes").status_code == 403                # no ADMIN_TOKEN set at all
+    monkeypatch.setenv("ADMIN_TOKEN", "t0ken")
+    assert client.get("/api/outcomes").status_code == 403
+    assert outcomes(client, "wrong").status_code == 403
+    assert outcomes(client).status_code == 200
+
+
+def test_reset_saves_a_snapshot_before_clearing(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_TOKEN", "t0ken")
+    saved = []
+    monkeypatch.setattr(web, "BUCKET", "test-bucket")
+    monkeypatch.setattr(web, "write_snapshot", lambda name, body: saved.append((name, json.loads(body))))
+    say(client, 1, "hi")
+    outcome(client, "tester01", "entry", RIGHT, conf=4)
+    assert client.post("/api/reset", headers={"x-admin-token": "t0ken"}).json() == {"ok": True, "snapshot": True}
+    name, snap = saved[-1]
+    assert name.startswith("shopmate/") and "_reset_" in name and snap["reason"] == "reset"
+    assert snap["n_entry"] == 1 and snap["game"]["levels"]["1"]["attempts"] == 1
+    assert "Asha" not in json.dumps(snap)
+    assert outcomes(client).json()["n_entry"] == 0                        # cleared after the snapshot
+
+
+def test_a_snapshot_every_10_minutes_and_a_failed_upload_never_breaks_play(client, monkeypatch):
+    saved = []
+    monkeypatch.setattr(web, "BUCKET", "test-bucket")
+    monkeypatch.setattr(web, "write_snapshot", lambda name, body: saved.append(name))
+    say(client, 1, "hi")
+    assert saved == []                                                    # not due yet
+    web.SNAP["last"] -= web.oc.SNAPSHOT_EVERY
+    say(client, 1, "hi again")
+    assert len(saved) == 1 and "_periodic_" in saved[0]
+    web.SNAP["last"] -= web.oc.SNAPSHOT_EVERY
+    web.maybe_snapshot()
+    assert len(saved) == 1                                                # nothing new, nothing written
+
+    def broken(name, body):
+        raise OSError("bucket unreachable")
+    monkeypatch.setattr(web, "write_snapshot", broken)
+    web.SNAP["last"] -= web.oc.SNAPSHOT_EVERY
+    assert "reply" in say(client, 1, "third")
+
+
+def test_the_upload_uses_the_service_account_token(monkeypatch):
+    calls = []
+
+    class Reply:
+        def __init__(self, body):
+            self.body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return self.body
+
+    def fake_urlopen(req, timeout):
+        calls.append(req)
+        return Reply(b'{"access_token": "tok"}' if "metadata" in req.full_url else b"{}")
+    monkeypatch.setattr(web.oc.urllib.request, "urlopen", fake_urlopen)
+    web.oc.gcs_write("my-bucket", "shopmate/x.json", b'{"a": 1}')
+    token_req, upload = calls
+    assert token_req.get_header("Metadata-flavor") == "Google"
+    assert upload.full_url == ("https://storage.googleapis.com/upload/storage/v1/b/my-bucket/o"
+                               "?uploadType=media&name=shopmate%2Fx.json")
+    assert upload.get_header("Authorization") == "Bearer tok" and upload.data == b'{"a": 1}'
